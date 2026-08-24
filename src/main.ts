@@ -6,12 +6,15 @@ import { loadBasemapStyle } from "./map/basemap.ts";
 import {
   addAtlasLayers,
   updateAirports,
+  updateRings,
+  updateRoute,
   updateSelectionMarker,
 } from "./map/layers.ts";
 import { getState, setState, subscribe } from "./app/state.ts";
 import { initPanel } from "./ui/panel.ts";
 import { closeCard, initCard, refreshCard, showCard } from "./ui/card.ts";
-import { initToast } from "./ui/toast.ts";
+import { initToast, showToast, hideToast } from "./ui/toast.ts";
+import { clearRoute, initRouteCard, showRouteCard } from "./ui/route.ts";
 import { esc } from "./app/format.ts";
 
 const BASE = import.meta.env.BASE_URL;
@@ -117,12 +120,35 @@ async function boot(): Promise<void> {
   initInteractions(map, airports);
 }
 
-/** Klick-Interaktionen: Detailkarte (Reichweite/Routen-Duell folgen). */
+/** Klick-Interaktionen: Detailkarte, Reichweiten-Ringe, Routen-Duell. */
 function initInteractions(map: maplibregl.Map, airports: Airport[]): void {
   initToast();
+  initRouteCard();
   initCard({
-    onRings: () => {},
-    onRouteStart: () => {},
+    onRings: (a) => {
+      setState({ ringsFor: a });
+      map.fitBounds(
+        [
+          [a.lo - 32, Math.max(30, a.la - 22)],
+          [a.lo + 32, Math.min(71, a.la + 22)],
+        ],
+        { padding: 24 },
+      );
+    },
+    onRouteStart: (a) => {
+      document.getElementById("card")!.classList.remove("open");
+      setState({
+        routePicking: true,
+        routeA: a,
+        routeB: null,
+        ringsFor: null,
+        selected: null,
+      });
+      showToast(
+        `Routen-Duell: <b>${esc(a.i)}</b> ist Start — <b>Zielplatz anklicken</b>`,
+        { sticky: true },
+      );
+    },
   });
 
   map.on("click", (e) => {
@@ -136,7 +162,7 @@ function initInteractions(map: maplibregl.Map, airports: Airport[]): void {
         )
       : [];
     if (!hits.length) {
-      closeCard();
+      if (!getState().routePicking) closeCard();
       return;
     }
     // nächstgelegenen Treffer wählen, nicht den ersten
@@ -152,16 +178,40 @@ function initInteractions(map: maplibregl.Map, airports: Airport[]): void {
         best = a;
       }
     }
-    if (best) selectAirport(best, e.point.x, e.point.y);
+    if (!best) return;
+    const s = getState();
+    if (s.routePicking && s.routeA) {
+      if (best === s.routeA) return;
+      hideToast(true);
+      setState({ routeB: best, routePicking: false });
+      showRouteCard(s.routeA, best);
+      map.fitBounds(
+        [
+          [Math.min(s.routeA.lo, best.lo) - 3, Math.max(28, Math.min(s.routeA.la, best.la) - 7)],
+          [Math.max(s.routeA.lo, best.lo) + 3, Math.min(71, Math.max(s.routeA.la, best.la) + 2)],
+        ],
+        { padding: 40 },
+      );
+      return;
+    }
+    selectAirport(best, e.point.x, e.point.y);
   });
 
   subscribe((s, changed) => {
     if (changed.has("selected")) updateSelectionMarker(map, s.selected);
     if (changed.has("marginPct") || changed.has("useGrass")) refreshCard();
+    if (changed.has("ringsFor")) updateRings(map, s.ringsFor);
+    if (changed.has("routeA") || changed.has("routeB"))
+      updateRoute(map, s.routeA, s.routeB);
   });
 
   addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeCard();
+    if (e.key === "Escape") {
+      closeCard();
+      clearRoute();
+      hideToast(true);
+      setState({ ringsFor: null });
+    }
   });
 }
 
