@@ -108,5 +108,13 @@
 <div id="route" role="dialog" aria-label="Routen-Duell"><button id="rx" aria-label="Routen-Duell schließen">×</button><div id="routeC"></div></div>
 
 <script type="module" src="/src/main.ts"></script>
+<script>
+// Übergangslösung: Solange GitHub Pages noch im Branch-Modus ausliefert
+// (Quelle nicht auf "GitHub Actions" umgestellt), kommt diese Datei
+// unkompiliert an — dann zum archivierten Prototyp umleiten.
+// Im gebauten Zustand zeigt der Module-Script auf assets/*.js → No-op.
+if (document.querySelector('script[type="module"][src$=".ts"]'))
+  location.replace("legacy/prototype.html");
+</script>
 </body>
 </html>
