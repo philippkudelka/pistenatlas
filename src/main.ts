@@ -3,9 +3,15 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import type { Airport } from "./logic/types.ts";
 import { loadBasemapStyle } from "./map/basemap.ts";
-import { addAtlasLayers, updateAirports } from "./map/layers.ts";
-import { getState, subscribe } from "./app/state.ts";
+import {
+  addAtlasLayers,
+  updateAirports,
+  updateSelectionMarker,
+} from "./map/layers.ts";
+import { getState, setState, subscribe } from "./app/state.ts";
 import { initPanel } from "./ui/panel.ts";
+import { closeCard, initCard, refreshCard, showCard } from "./ui/card.ts";
+import { initToast } from "./ui/toast.ts";
 import { esc } from "./app/format.ts";
 
 const BASE = import.meta.env.BASE_URL;
@@ -111,8 +117,58 @@ async function boot(): Promise<void> {
   initInteractions(map, airports);
 }
 
-/** Klick-Interaktionen (Detailkarte, Reichweite, Routen-Duell) — Ausbau folgt. */
-function initInteractions(_map: maplibregl.Map, _airports: Airport[]): void {}
+/** Klick-Interaktionen: Detailkarte (Reichweite/Routen-Duell folgen). */
+function initInteractions(map: maplibregl.Map, airports: Airport[]): void {
+  initToast();
+  initCard({
+    onRings: () => {},
+    onRouteStart: () => {},
+  });
+
+  map.on("click", (e) => {
+    const hits = map.getLayer("airports-dots")
+      ? map.queryRenderedFeatures(
+          [
+            [e.point.x - 8, e.point.y - 8],
+            [e.point.x + 8, e.point.y + 8],
+          ],
+          { layers: ["airports-dots"] },
+        )
+      : [];
+    if (!hits.length) {
+      closeCard();
+      return;
+    }
+    // nächstgelegenen Treffer wählen, nicht den ersten
+    let best: Airport | undefined;
+    let bestD = Infinity;
+    for (const f of hits) {
+      const a = airports[f.properties["idx"] as number];
+      if (!a) continue;
+      const p = map.project([a.lo, a.la]);
+      const d = (p.x - e.point.x) ** 2 + (p.y - e.point.y) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = a;
+      }
+    }
+    if (best) selectAirport(best, e.point.x, e.point.y);
+  });
+
+  subscribe((s, changed) => {
+    if (changed.has("selected")) updateSelectionMarker(map, s.selected);
+    if (changed.has("marginPct") || changed.has("useGrass")) refreshCard();
+  });
+
+  addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeCard();
+  });
+}
+
+function selectAirport(a: Airport, px: number, py: number): void {
+  setState({ selected: a, ringsFor: null });
+  showCard(a, px, py);
+}
 
 boot().catch((err) => {
   console.error(err);
