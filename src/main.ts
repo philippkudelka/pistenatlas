@@ -16,6 +16,7 @@ import { closeCard, initCard, refreshCard, showCard } from "./ui/card.ts";
 import { initToast, showToast, hideToast } from "./ui/toast.ts";
 import { clearRoute, initRouteCard, showRouteCard } from "./ui/route.ts";
 import { initSearch } from "./ui/search.ts";
+import { initIntro } from "./ui/intro.ts";
 import { esc } from "./app/format.ts";
 
 const BASE = import.meta.env.BASE_URL;
@@ -123,6 +124,7 @@ async function boot(): Promise<void> {
     const p = map.project([a.lo, a.la]);
     selectAirport(a, p.x, p.y);
   });
+  initIntro();
 }
 
 /** Klick-Interaktionen: Detailkarte, Reichweiten-Ringe, Routen-Duell. */
