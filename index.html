@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Pisteneignung von ~2.500 europäischen Flugplätzen für Cirrus SF50 Vision Jet und Pilatus PC-12 — privat und gewerblich.">
+<meta name="description" content="Pisteneignung europäischer Flugplätze für Cirrus SF50 Vision Jet und Pilatus PC-12 — privat und gewerblich, mit Reichweiten und Routen-Duell.">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0A0E15">
 <title>Pistenatlas SF50 × PC-12</title>
@@ -11,7 +11,99 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 </head>
 <body>
-<div id="app"></div>
+
+<div id="map" aria-label="Europakarte mit Flugplätzen"></div>
+<p id="loading">Karte wird geladen …</p>
+<button id="toggle" aria-label="Steuerung anzeigen" aria-expanded="false">☰</button>
+
+<aside id="panel" aria-label="Steuerung">
+  <h1>PISTENATLAS <span class="x">SF50 × PC-12</span></h1>
+  <p class="sub" id="subline">Wer kann wo starten und landen? Europäische Flugplätze gegen den Bahnbedarf beider Muster — privat und gewerblich.</p>
+
+  <div class="lbl" id="viewsLbl">Was kann …</div>
+  <div class="views" id="views" role="group" aria-labelledby="viewsLbl">
+    <button data-v="0" style="--c:var(--sf50)" aria-pressed="false"><em>SF50</em>privat</button>
+    <button data-v="1" style="--c:var(--sf50)" aria-pressed="true"><em>SF50</em>gewerblich</button>
+    <button data-v="2" style="--c:var(--pc12)" aria-pressed="false"><em>PC-12</em>privat</button>
+    <button data-v="3" style="--c:var(--pc12)" aria-pressed="false"><em>PC-12</em>gewerblich</button>
+  </div>
+
+  <div id="hero">
+    <b id="hNum" aria-live="polite">0</b>
+    <span id="hTxt"></span>
+  </div>
+  <p id="hCmp"></p>
+
+  <div class="lbl"><label for="search" style="all:inherit;cursor:text">Suche</label></div>
+  <input type="search" id="search" placeholder="ICAO, Name oder Ort suchen …" autocomplete="off"
+    role="combobox" aria-expanded="false" aria-controls="sres" aria-autocomplete="list">
+  <div id="sres" role="listbox" aria-label="Suchergebnisse"></div>
+  <div class="quick">
+    <button data-ap="EDRK">◈ Koblenz EDRK</button>
+    <button data-ap="EDRY">◈ Speyer EDRY</button>
+  </div>
+
+  <details>
+    <summary>Filter &amp; Feinjustierung</summary>
+    <div class="lbl" style="margin-top:9px"><label for="country" style="all:inherit">Land</label></div>
+    <select id="country"><option value="">Alle Länder</option></select>
+    <div class="row" style="margin-top:11px"><label for="margin" style="font-size:11px;color:var(--mut);width:88px">Sicherheitsmarge</label>
+      <input type="range" id="margin" min="0" max="30" value="0" step="5">
+      <span class="mono" id="marginV" style="font-size:12px;width:38px;text-align:right;color:var(--ink)" aria-hidden="true">+0%</span></div>
+    <div class="row"><input type="checkbox" id="grass" checked><label for="grass" style="font-size:11.5px;color:var(--mut)">Gras-/Naturpisten zählen <span style="color:var(--dim)">(nur PC-12 zugelassen)</span></label></div>
+  </details>
+
+  <details id="rankD"><summary>Länder-Ranking</summary><div id="rank"></div></details>
+
+  <details>
+    <summary>Rechengrundlage</summary>
+    <table>
+      <tr><th scope="col"></th><th scope="col">SF50</th><th scope="col">PC-12 NGX</th></tr>
+      <tr><td>Start über 15 m (SL, ISA, trocken)</td><td class="num">973 m</td><td class="num">758 m</td></tr>
+      <tr><td>Landung über 15 m</td><td class="num">772 m</td><td class="num">661 m</td></tr>
+      <tr><td>Bahnbedarf <b>privat/NCC</b></td><td class="num">≥ 973 m</td><td class="num">≥ 758 m</td></tr>
+      <tr><td>Bahnbedarf <b>gewerblich</b></td><td class="num">≥ 1 289 m</td><td class="num">≥ 948 m</td></tr>
+      <tr><td>Graspiste privat / gewerblich</td><td class="num">— / —</td><td class="num">≥ 910 / 1 137 m</td></tr>
+      <tr><td>Reichweite (4 Pax, LRC)</td><td class="num">1 275 NM</td><td class="num">1 803 NM</td></tr>
+    </table>
+    <p class="note">SF50: AFM P/N 31452-002 Rev. A1 (Section 2 Limitations, Section 5 Performance); gewerblich = AFM „Factored Data“ (× 1,67 trocken — 60-%-Regel für Jets, EASA CAT.POL.A.100/230). Gras ist für den SF50 per AFM-Limitation nicht zulässig. PC-12 NGX: Pilatus-Werksangaben; gewerblich = EASA-Flugleistungsklasse B (Start × 1,25, Landung ≤ 70 % LDA — CAT.POL.A.305/330/335), Gras × 1,2.</p>
+    <p class="note">Werte gelten für Meereshöhe, ISA, Windstille, trockene ebene Bahn, max. Masse — Höhe, Hitze, Nässe erhöhen den Bedarf (→ Marge). Pistendaten: OurAirports, längste Bahn je Platz; unbekannter Belag zählt nur bei größeren Plätzen als befestigt. TORA/LDA können kürzer sein, örtliche Jet-/PPR-Beschränkungen sind nicht enthalten. Vorauswahl, keine Flugvorbereitung.</p>
+  </details>
+</aside>
+
+<div id="zoom" role="group" aria-label="Kartenansicht">
+  <button id="zin" aria-label="Hineinzoomen">+</button>
+  <button id="zout" aria-label="Herauszoomen">−</button>
+  <button id="zde" class="sm" aria-label="Auf Deutschland zentrieren">DE</button>
+  <button id="zeu" class="sm" aria-label="Auf Europa zentrieren">EU</button>
+  <button id="zhelp" aria-label="Erklärung anzeigen">?</button>
+</div>
+
+<div id="introWrap" role="dialog" aria-modal="true" aria-label="Erklärung">
+  <div id="intro">
+    <h2>Pistenatlas SF50 × PC-12</h2>
+    <p class="sub">Zwei Flugzeuge stehen zur Wahl: der Cirrus SF50 Vision Jet und die Pilatus PC-12. Diese Karte zeigt für jeden europäischen Flugplatz, ob seine Piste für das jeweilige Muster lang genug ist.</p>
+    <div class="sec"><span class="ic" aria-hidden="true">1</span><p><b>Oben links ein Szenario wählen.</b> „Privat“ rechnet mit den Werten aus dem Flughandbuch. „Gewerblich“ rechnet mit den gesetzlichen Sicherheitszuschlägen für kommerzielle Flüge (z.&nbsp;B. Charter) — ein Jet muss dann innerhalb von 60&nbsp;% der Piste zum Stehen kommen, deshalb schrumpft die Auswahl deutlich.</p></div>
+    <div class="sec"><span class="ic" aria-hidden="true">2</span><p><b>Die Farben lesen:</b></p></div>
+    <div class="dots">
+      <span><span class="dot" style="color:#35D98F;background:#35D98F" aria-hidden="true"></span><b>Grün</b> — Piste reicht für das gewählte Szenario</span>
+      <span><span class="dot" style="color:#52A9FF;background:#52A9FF" aria-hidden="true"></span><b>Blau</b> — reicht nicht für den SF50, aber die PC-12 käme hin</span>
+      <span><span class="dot" style="color:#333F4D;background:#333F4D;box-shadow:none" aria-hidden="true"></span><b>Grau</b> — Piste für beide zu kurz</span>
+    </div>
+    <div class="sec"><span class="ic" aria-hidden="true">3</span><p><b>Jeden Punkt anklicken:</b> Details mit Pistenlänge und allen vier Urteilen — von dort aus Reichweiten-Ringe einblenden oder das <b>Routen-Duell</b> starten (zweiten Platz anklicken: Flugzeit, Verbrauch und CO₂ beider Muster im Vergleich).</p></div>
+    <div class="sec"><span class="ic" aria-hidden="true">ℹ</span><p>Grundlage: Herstellerdaten (SF50-Flughandbuch, Pilatus-Werksangaben) und Pistenlängen aus OurAirports, gerechnet für Meereshöhe, Standardtag, trockene Bahn. Eine Planungshilfe zur Vorauswahl — keine Flugvorbereitung. Details unter „Rechengrundlage“ links.</p></div>
+    <button id="introGo">Karte erkunden</button>
+    <p id="introNote">Diese Erklärung lässt sich jederzeit über das ?-Symbol rechts oben wieder öffnen.</p>
+  </div>
+</div>
+
+<div id="legend" aria-label="Legende"></div>
+<div id="tip" role="status"></div>
+<div id="toast" role="status"><b>Flugplatz anklicken</b> → Details, Reichweiten-Ringe &amp; Routen-Duell</div>
+
+<div id="card" role="dialog" aria-label="Flugplatzdetails"><button id="cx" aria-label="Details schließen">×</button><div id="cardC"></div></div>
+<div id="route" role="dialog" aria-label="Routen-Duell"><button id="rx" aria-label="Routen-Duell schließen">×</button><div id="routeC"></div></div>
+
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
