@@ -15,6 +15,7 @@ import { initPanel } from "./ui/panel.ts";
 import { closeCard, initCard, refreshCard, showCard } from "./ui/card.ts";
 import { initToast, showToast, hideToast } from "./ui/toast.ts";
 import { clearRoute, initRouteCard, showRouteCard } from "./ui/route.ts";
+import { initSearch } from "./ui/search.ts";
 import { esc } from "./app/format.ts";
 
 const BASE = import.meta.env.BASE_URL;
@@ -118,6 +119,10 @@ async function boot(): Promise<void> {
 
   initPanel(airports);
   initInteractions(map, airports);
+  initSearch(map, airports, (a) => {
+    const p = map.project([a.lo, a.la]);
+    selectAirport(a, p.x, p.y);
+  });
 }
 
 /** Klick-Interaktionen: Detailkarte, Reichweiten-Ringe, Routen-Duell. */
