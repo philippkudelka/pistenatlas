@@ -151,8 +151,29 @@ details td.num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabula
 #toggle{display:none;position:absolute;left:16px;top:16px;z-index:6;width:40px;height:40px;border-radius:10px;border:1px solid var(--edge);
   background:var(--panel);color:var(--ink);font-size:17px;cursor:pointer;box-shadow:var(--sh)}
 #legend{position:absolute;right:16px;bottom:16px;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--edge);
-  border-radius:10px;padding:9px 13px;font-size:11px;line-height:1.9;z-index:4;box-shadow:var(--sh);color:var(--mut)}
+  border-radius:10px;padding:10px 14px;font-size:11.5px;line-height:1.95;z-index:4;box-shadow:var(--sh);color:var(--mut);max-width:250px}
+#legend .lt{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-bottom:2px}
+#legend .hint{border-top:1px solid var(--edge);margin-top:6px;padding-top:6px;font-size:10.5px;line-height:1.5;color:var(--dim)}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:0 0 6px currentColor}
+
+/* ---------- intro / explanation ---------- */
+#introWrap{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+  background:rgba(6,9,14,.72);backdrop-filter:blur(6px);padding:16px}
+#intro{width:520px;max-width:100%;max-height:calc(100vh - 40px);overflow-y:auto;background:var(--panel);
+  border:1px solid var(--edge2);border-radius:14px;box-shadow:var(--sh);padding:24px 26px 20px}
+#intro h2{margin:0 0 4px;font-size:19px;font-weight:850;font-stretch:112%}
+#intro .sub{font-size:12px;color:var(--mut);margin:0 0 16px;line-height:1.5}
+#intro .sec{display:flex;gap:12px;margin:12px 0;align-items:flex-start}
+#intro .sec .ic{flex:none;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;background:rgba(255,255,255,.06);border:1px solid var(--edge)}
+#intro .sec p{margin:0;font-size:12.5px;line-height:1.6;color:var(--mut)}
+#intro .sec p b{color:var(--ink)}
+#intro .dots{display:flex;flex-direction:column;gap:6px;margin:4px 0 2px;font-size:12.5px;color:var(--mut)}
+#intro .dots b{color:var(--ink);font-weight:600}
+#introGo{display:block;width:100%;margin-top:18px;padding:11px;border-radius:9px;border:0;background:var(--ink);
+  color:#0B0F16;font-size:13.5px;font-weight:800;cursor:pointer}
+#introGo:hover{opacity:.9}
+#introNote{font-size:10px;color:var(--dim);text-align:center;margin:8px 0 0;line-height:1.5}
 
 @media (max-width:760px){
   #panel{display:none;width:calc(100% - 32px)}
@@ -233,6 +254,25 @@ details td.num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabula
   <button id="zout" aria-label="Herauszoomen">−</button>
   <button id="zde" class="sm" aria-label="Auf Deutschland zentrieren">DE</button>
   <button id="zeu" class="sm" aria-label="Auf Europa zentrieren">EU</button>
+  <button id="zhelp" aria-label="Erklärung anzeigen">?</button>
+</div>
+
+<div id="introWrap" role="dialog" aria-label="Erklärung">
+  <div id="intro">
+    <h2>Pistenatlas SF50 × PC-12</h2>
+    <p class="sub">Zwei Flugzeuge stehen zur Wahl: der Cirrus SF50 Vision Jet und die Pilatus PC-12. Diese Karte zeigt für jeden europäischen Flugplatz, ob seine Piste für das jeweilige Muster lang genug ist.</p>
+    <div class="sec"><span class="ic">1</span><p><b>Oben links ein Szenario wählen.</b> „Privat" rechnet mit den Werten aus dem Flughandbuch. „Gewerblich" rechnet mit den gesetzlichen Sicherheitszuschlägen für kommerzielle Flüge (z.&nbsp;B. Charter) — ein Jet muss dann innerhalb von 60&nbsp;% der Piste zum Stehen kommen, deshalb schrumpft die Auswahl deutlich.</p></div>
+    <div class="sec"><span class="ic">2</span><p><b>Die Farben lesen:</b></p></div>
+    <div class="dots" style="margin-left:38px">
+      <span><span class="dot" style="color:#35D98F;background:#35D98F"></span><b>Grün</b> — Piste reicht für das gewählte Szenario</span>
+      <span><span class="dot" style="color:#52A9FF;background:#52A9FF"></span><b>Blau</b> — reicht nicht für den SF50, aber die PC-12 käme hin</span>
+      <span><span class="dot" style="color:#333F4D;background:#333F4D;box-shadow:none"></span><b>Grau</b> — Piste für beide zu kurz</span>
+    </div>
+    <div class="sec"><span class="ic">3</span><p><b>Jeden Punkt anklicken:</b> Details mit Pistenlänge und allen vier Urteilen — von dort aus Reichweiten-Ringe einblenden oder das <b>Routen-Duell</b> starten (zweiten Platz anklicken: Flugzeit, Verbrauch und CO₂ beider Muster im Vergleich).</p></div>
+    <div class="sec"><span class="ic">ℹ</span><p>Grundlage: Herstellerdaten (SF50-Flughandbuch, Pilatus-Werksangaben) und Pistenlängen aus OurAirports, gerechnet für Meereshöhe, Standardtag, trockene Bahn. Eine Planungshilfe zur Vorauswahl — keine Flugvorbereitung. Details unter „Rechengrundlage" links unten.</p></div>
+    <button id="introGo">Karte erkunden</button>
+    <p id="introNote">Diese Erklärung lässt sich jederzeit über das ?-Symbol rechts oben wieder öffnen.</p>
+  </div>
 </div>
 
 <div id="legend"></div>
@@ -354,9 +394,11 @@ function updatePanel(){
 function legend(){
   const M=SCNMETA[SCN],isSf=M.ac==="sf50";
   const L=document.getElementById("legend");
-  L.innerHTML=`<span class="dot" style="color:${COL.both};background:${COL.both}"></span>${M.name} nutzbar`
-    +(isSf?`<br><span class="dot" style="color:${COL.pc12};background:${COL.pc12}"></span>nur PC-12 (${M.op})`:"")
-    +`<br><span class="dot" style="color:${COL.none};background:${COL.none};box-shadow:none"></span>zu kurz`;
+  L.innerHTML=`<div class="lt">Legende</div>`
+    +`<span class="dot" style="color:${COL.both};background:${COL.both}"></span>Piste reicht: <b style="color:var(--ink)">${M.name}</b>`
+    +(isSf?`<br><span class="dot" style="color:${COL.pc12};background:${COL.pc12}"></span>nur PC-12 käme hin (${M.op})`:"")
+    +`<br><span class="dot" style="color:${COL.none};background:${COL.none};box-shadow:none"></span>für beide zu kurz`
+    +`<div class="hint">Punkt anklicken → Details, Reichweite &amp; Routen-Duell · ? oben rechts erklärt die Karte</div>`;
 }
 function rank(){
   const el=document.getElementById("rank");if(!document.getElementById("rankD").open)return;
@@ -617,7 +659,18 @@ document.querySelectorAll(".quick button").forEach(b=>b.onclick=()=>{
   const a=AIRPORTS.find(x=>x.i===b.dataset.ap);if(a)goAirport(a);});
 
 document.getElementById("toggle").onclick=()=>document.getElementById("panel").classList.toggle("open");
-addEventListener("keydown",e=>{if(e.key==="Escape"){clearRoute();closeCard();}});
+
+/* intro / explanation */
+const introWrap=document.getElementById("introWrap");
+function showIntro(){introWrap.style.display="flex";}
+function hideIntro(){introWrap.style.display="none";try{localStorage.setItem("pistenatlas_intro","1");}catch(e){}}
+document.getElementById("zhelp").onclick=showIntro;
+document.getElementById("introGo").onclick=hideIntro;
+introWrap.addEventListener("click",e=>{if(e.target===introWrap)hideIntro();});
+let seen=false;try{seen=localStorage.getItem("pistenatlas_intro")==="1";}catch(e){}
+if(!seen)showIntro();
+
+addEventListener("keydown",e=>{if(e.key==="Escape"){hideIntro();clearRoute();closeCard();}});
 cv.addEventListener("click",()=>{firstClickDone=true;});
 
 addEventListener("resize",resize);
