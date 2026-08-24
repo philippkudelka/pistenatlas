@@ -8,7 +8,7 @@ import { gcDistanceNm } from "../logic/geo.ts";
 import type { AircraftId, Airport } from "../logic/types.ts";
 import { esc, fmtHhMm, fmtInt } from "../app/format.ts";
 import { getState, setState } from "../app/state.ts";
-import { COLORS } from "../map/layers.ts";
+import { COLORS } from "../app/colors.ts";
 
 const routeEl = () => document.getElementById("route")!;
 

@@ -10,13 +10,8 @@ import { destPoint, gcPath } from "../logic/geo.ts";
 import { PERF } from "../logic/constants.ts";
 import { fmtInt } from "../app/format.ts";
 
-export const COLORS = {
-  ok: "#35D98F",
-  alt: "#52A9FF",
-  none: "#333F4D",
-  sf50: "#FF6B5E",
-  pc12: "#52A9FF",
-};
+import { COLORS } from "../app/colors.ts";
+export { COLORS };
 
 /** Alle Atlas-Quellen und -Layer auf der geladenen Karte anlegen. */
 export function addAtlasLayers(map: MlMap): void {

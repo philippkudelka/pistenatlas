@@ -8,7 +8,7 @@ import { COUNTRY_NAMES } from "../logic/constants.ts";
 import type { Airport, Verdict } from "../logic/types.ts";
 import { fmtInt } from "../app/format.ts";
 import { getState, setState, subscribe, type AppState } from "../app/state.ts";
-import { COLORS } from "../map/layers.ts";
+import { COLORS } from "../app/colors.ts";
 
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 

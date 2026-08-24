@@ -3,7 +3,7 @@ import { COUNTRY_NAMES, REQ } from "../logic/constants.ts";
 import type { Airport } from "../logic/types.ts";
 import { esc, fmtMeters } from "../app/format.ts";
 import { getState, setState } from "../app/state.ts";
-import { COLORS } from "../map/layers.ts";
+import { COLORS } from "../app/colors.ts";
 
 const card = () => document.getElementById("card")!;
 

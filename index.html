@@ -8,7 +8,10 @@
 <meta name="theme-color" content="#0A0E15">
 <title>Pistenatlas SF50 × PC-12</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<link rel="preload" href="%BASE_URL%data/airports.json" as="fetch" crossorigin>
+<!-- Fonts nicht render-blockierend laden (System-Fallback bis dahin) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=optional" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=optional"></noscript>
 </head>
 <body>
 

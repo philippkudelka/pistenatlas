@@ -912,6 +912,8 @@ details td.num {
   #panel {
     display: none;
     width: calc(100% - 32px);
+    top: 64px;
+    max-height: calc(100% - 80px);
   }
   #panel.open {
     display: block;
