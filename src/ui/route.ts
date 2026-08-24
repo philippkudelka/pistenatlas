@@ -5,6 +5,7 @@ import {
   PERF,
 } from "../logic/constants.ts";
 import { gcDistanceNm } from "../logic/geo.ts";
+import { rangeAtPax } from "../logic/range.ts";
 import type { AircraftId, Airport } from "../logic/types.ts";
 import { esc, fmtHhMm, fmtInt } from "../app/format.ts";
 import { getState, setState } from "../app/state.ts";
@@ -29,6 +30,7 @@ export function showRouteCard(a: Airport, b: Airport): void {
   const vB = classify(b, opt);
   const dist = gcDistanceNm(a, b);
 
+  const pax = s.paxCount;
   const col = (ac: AircraftId): string => {
     const perf = PERF[ac];
     const blockH = dist / perf.tas + BLOCK_TIME_EXTRA_H;
@@ -38,13 +40,17 @@ export function showRouteCard(a: Airport, b: Airport): void {
       ac === "sf50" ? vA.sf50Priv && vB.sf50Priv : vA.pc12Priv && vB.pc12Priv;
     const okCat =
       ac === "sf50" ? vA.sf50Cat && vB.sf50Cat : vA.pc12Cat && vB.pc12Cat;
-    const overRange = dist > perf.rangeNm;
+    const range = rangeAtPax(ac, pax);
+    const tooManyPax = range === null;
+    const overRange = !tooManyPax && dist > range;
     return `<div class="rcol" style="--c:${ac === "sf50" ? COLORS.sf50 : COLORS.pc12}"><div class="hd">${perf.name}</div>
-      <div class="big">${overRange ? "—" : fmtHhMm(blockH)}</div>
+      <div class="big">${tooManyPax || overRange ? "—" : fmtHhMm(blockH)}</div>
       <div class="sm">${
-        overRange
-          ? `außerhalb der Reichweite (${fmtInt(perf.rangeNm)} NM)`
-          : `~${fmtInt(fuel)} l · ~${fmtInt(co2)} kg CO₂ fossil`
+        tooManyPax
+          ? `maximal ${perf.seatsMax} Passagiere`
+          : overRange
+            ? `außerhalb der Reichweite (${fmtInt(range)} NM bei ${pax} Pax)`
+            : `~${fmtInt(fuel)} l · ~${fmtInt(co2)} kg CO₂ fossil`
       }</div>
       <div class="vp"><span class="pill ${okPriv ? "ok" : "no"}">privat ${okPriv ? "✓" : "✗"}</span>
       <span class="pill ${okCat ? "ok" : "no"}">gewerblich ${okCat ? "✓" : "✗"}</span></div></div>`;
@@ -53,6 +59,6 @@ export function showRouteCard(a: Airport, b: Airport): void {
   document.getElementById("routeC")!.innerHTML =
     `<h3>${esc(a.i)} ➔ ${esc(b.i)}<span class="d">${fmtInt(Math.round(dist))} NM Großkreis · ${esc(a.m || a.n)} → ${esc(b.m || b.n)}</span></h3>
   <div id="rgrid">${col("sf50")}${col("pc12")}</div>
-  <div id="rnote">Blockzeit = Distanz / Reise-TAS (SF50 305 kt, PC-12 285 kt) + 12 min; Verbrauch SF50 227 l/h (AFM-Ableitung), PC-12 ~245 l/h (Schätzung); CO₂ 3,16 kg je kg Jet A-1 — mit SAF entsprechend weniger. Pillen: können Start- <i>und</i> Zielplatz bedient werden (aktuelle Marge)?</div>`;
+  <div id="rnote">Gerechnet mit <b>${pax} Passagier${pax === 1 ? "" : "en"}</b> (Reichweite nach MTOW-Modell). Blockzeit = Distanz / Reise-TAS (SF50 305 kt, PC-12 285 kt) + 12 min; Verbrauch SF50 227 l/h (AFM-Ableitung), PC-12 ~245 l/h (Schätzung); CO₂ 3,16 kg je kg Jet A-1 — mit SAF entsprechend weniger. Pillen: können Start- <i>und</i> Zielplatz bedient werden (aktuelle Marge)?</div>`;
   routeEl().classList.add("open");
 }

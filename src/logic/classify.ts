@@ -51,16 +51,22 @@ export function counterpartKey(id: ScenarioId): keyof Verdict {
 }
 
 /**
- * Kartenfarbe eines Platzes im gewählten Szenario:
- *  "ok"   – Piste reicht für das Szenario (grün)
- *  "alt"  – reicht nicht für den SF50, aber die PC-12 käme hin (blau; nur bei SF50-Szenarien)
- *  "none" – zu kurz (gedimmt)
+ * Eignungs-Stufe eines Platzes (szenario-unabhängig). Die Bahnbedarfe bauen
+ * streng aufeinander auf (SF50 gewerblich 1.289 m ⟹ SF50 privat 973 m ⟹
+ * PC-12 gewerblich 948 m ⟹ PC-12 privat 758 m; Gras betrifft nur die PC-12),
+ * daher bilden die Urteile eine Leiter:
+ *  4 – SF50 gewerblich (damit alle vier Szenarien)
+ *  3 – SF50 privat (PC-12 kann dann beides)
+ *  2 – nur PC-12, privat + gewerblich
+ *  1 – nur PC-12 privat
+ *  0 – für beide zu kurz
  */
-export type DotClass = "ok" | "alt" | "none";
+export type Tier = 0 | 1 | 2 | 3 | 4;
 
-export function dotClass(v: Verdict, scenario: ScenarioId): DotClass {
-  const self = v[SCENARIOS[scenario].key];
-  if (self) return "ok";
-  if (scenario < 2 && v[counterpartKey(scenario)]) return "alt";
-  return "none";
+export function tierOf(v: Verdict): Tier {
+  if (v.sf50Cat) return 4;
+  if (v.sf50Priv) return 3;
+  if (v.pc12Cat) return 2;
+  if (v.pc12Priv) return 1;
+  return 0;
 }

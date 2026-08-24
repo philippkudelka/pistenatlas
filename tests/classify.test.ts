@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   classify,
-  dotClass,
   effectivePaved,
+  tierOf,
   type ClassifyOptions,
 } from "../src/logic/classify.ts";
 import type { Airport } from "../src/logic/types.ts";
@@ -148,21 +148,39 @@ describe("Unbekannter Belag", () => {
   });
 });
 
-describe("Punktfarbe (dotClass)", () => {
-  it("grün, wenn das Szenario erfüllt ist", () => {
-    const v = classify(ap({ p: 1300 }), base);
-    expect(dotClass(v, 1)).toBe("ok");
+describe("Eignungs-Stufen (tierOf)", () => {
+  it("Stufe 4: SF50 gewerblich (≥ 1.289 m)", () => {
+    expect(tierOf(classify(ap({ p: 1300 }), base))).toBe(4);
   });
-  it("blau im SF50-Szenario, wenn nur die PC-12 hinkäme", () => {
-    const v = classify(ap({ p: 1000 }), base); // SF50 cat nein, PC-12 cat ja
-    expect(dotClass(v, 1)).toBe("alt");
+  it("Stufe 3: SF50 nur privat (973–1.288 m)", () => {
+    expect(tierOf(classify(ap({ p: 1175 }), base))).toBe(3); // EDRK-artig
   });
-  it("kein Blau in PC-12-Szenarien", () => {
-    const v = classify(ap({ p: 800 }), base); // PC-12 priv ja, cat nein
-    expect(dotClass(v, 3)).toBe("none");
+  it("Stufe 2: nur PC-12, privat + gewerblich (948–972 m)", () => {
+    expect(tierOf(classify(ap({ p: 950 }), base))).toBe(2);
   });
-  it("gedimmt, wenn für beide zu kurz", () => {
-    const v = classify(ap({ p: 400 }), base);
-    expect(dotClass(v, 0)).toBe("none");
+  it("Stufe 1: nur PC-12 privat (758–947 m)", () => {
+    expect(tierOf(classify(ap({ p: 800 }), base))).toBe(1);
+  });
+  it("Stufe 0: für beide zu kurz", () => {
+    expect(tierOf(classify(ap({ p: 400 }), base))).toBe(0);
+  });
+  it("reiner Grasplatz 1.200 m: Stufe 2 (PC-12 beide, SF50 nie auf Gras)", () => {
+    expect(tierOf(classify(ap({ g: 1200 }), base))).toBe(2);
+  });
+  it("Leiter-Invariante: höhere Stufe erfüllt alle Urteile der niedrigeren", () => {
+    // Die Bahnbedarfe sind streng geordnet, daher darf es keine Lücken geben:
+    // wer SF50 privat kann, kann immer auch PC-12 gewerblich usw.
+    for (let len = 0; len <= 2000; len += 25) {
+      const v = classify(ap({ p: len }), base);
+      const t = tierOf(v);
+      if (t >= 4) expect(v.sf50Cat).toBe(true);
+      if (t >= 3) expect(v.sf50Priv).toBe(true);
+      if (t >= 2) expect(v.pc12Cat).toBe(true);
+      if (t >= 1) expect(v.pc12Priv).toBe(true);
+      if (t < 4) expect(v.sf50Cat).toBe(false);
+      if (t < 3) expect(v.sf50Priv).toBe(false);
+      if (t < 2) expect(v.pc12Cat).toBe(false);
+      if (t < 1) expect(v.pc12Priv).toBe(false);
+    }
   });
 });

@@ -204,9 +204,13 @@ function initInteractions(map: maplibregl.Map, airports: Airport[]): void {
   subscribe((s, changed) => {
     if (changed.has("selected")) updateSelectionMarker(map, s.selected);
     if (changed.has("marginPct") || changed.has("useGrass")) refreshCard();
-    if (changed.has("ringsFor")) updateRings(map, s.ringsFor);
+    if (changed.has("ringsFor") || (changed.has("paxCount") && s.ringsFor))
+      updateRings(map, s.ringsFor, s.paxCount);
     if (changed.has("routeA") || changed.has("routeB"))
       updateRoute(map, s.routeA, s.routeB);
+    // Passagierzahl ändert Reichweite → offenes Routen-Duell neu rechnen
+    if (changed.has("paxCount") && s.routeA && s.routeB)
+      showRouteCard(s.routeA, s.routeB);
   });
 
   addEventListener("keydown", (e) => {

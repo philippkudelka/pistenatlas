@@ -54,6 +54,10 @@
       <input type="range" id="margin" min="0" max="30" value="0" step="5">
       <span class="mono" id="marginV" style="font-size:12px;width:38px;text-align:right;color:var(--ink)" aria-hidden="true">+0%</span></div>
     <div class="row"><input type="checkbox" id="grass" checked><label for="grass" style="font-size:11.5px;color:var(--mut)">Gras-/Naturpisten zählen <span style="color:var(--dim)">(nur PC-12 zugelassen)</span></label></div>
+    <div class="row" style="margin-top:11px"><label for="pax" style="font-size:11px;color:var(--mut);width:88px">Passagiere</label>
+      <input type="range" id="pax" min="1" max="8" value="4" step="1">
+      <span class="mono" id="paxV" style="font-size:12px;width:38px;text-align:right;color:var(--ink)" aria-hidden="true">4</span></div>
+    <p class="note" id="paxInfo" style="margin-top:2px"></p>
   </details>
 
   <details id="rankD"><summary>Länder-Ranking</summary><div id="rank"></div></details>
@@ -71,6 +75,7 @@
     </table>
     <p class="note">SF50: AFM P/N 31452-002 Rev. A1 (Section 2 Limitations, Section 5 Performance); gewerblich = AFM „Factored Data“ (× 1,67 trocken — 60-%-Regel für Jets, EASA CAT.POL.A.100/230). Gras ist für den SF50 per AFM-Limitation nicht zulässig. PC-12 NGX: Pilatus-Werksangaben; gewerblich = EASA-Flugleistungsklasse B (Start × 1,25, Landung ≤ 70 % LDA — CAT.POL.A.305/330/335), Gras × 1,2.</p>
     <p class="note">Werte gelten für Meereshöhe, ISA, Windstille, trockene ebene Bahn, max. Masse — Höhe, Hitze, Nässe erhöhen den Bedarf (→ Marge). Pistendaten: OurAirports, längste Bahn je Platz; unbekannter Belag zählt nur bei größeren Plätzen als befestigt. TORA/LDA können kürzer sein, örtliche Jet-/PPR-Beschränkungen sind nicht enthalten. Vorauswahl, keine Flugvorbereitung.</p>
+    <p class="note">Passagier-Regler: Reichweiten gelten für 4 Passagiere (à 100 kg inkl. Gepäck, Tanks voll). Jeder weitere Passagier geht bei MTOW gegen Sprit — SF50 ≈ 168 NM, PC-12 ≈ 145 NM Reichweitenverlust je Passagier (aus Reiseverbrauch je NM). Weniger Passagiere bringen keine Mehr-Reichweite; der Bahnbedarf bleibt konservativ bei max. Masse. SF50 max. 5, PC-12 max. 8 Passagiere.</p>
   </details>
 </aside>
 
@@ -89,9 +94,12 @@
     <div class="sec"><span class="ic" aria-hidden="true">1</span><p><b>Oben links ein Szenario wählen.</b> „Privat“ rechnet mit den Werten aus dem Flughandbuch. „Gewerblich“ rechnet mit den gesetzlichen Sicherheitszuschlägen für kommerzielle Flüge (z.&nbsp;B. Charter) — ein Jet muss dann innerhalb von 60&nbsp;% der Piste zum Stehen kommen, deshalb schrumpft die Auswahl deutlich.</p></div>
     <div class="sec"><span class="ic" aria-hidden="true">2</span><p><b>Die Farben lesen:</b></p></div>
     <div class="dots">
-      <span><span class="dot" style="color:#35D98F;background:#35D98F" aria-hidden="true"></span><b>Grün</b> — Piste reicht für das gewählte Szenario</span>
-      <span><span class="dot" style="color:#52A9FF;background:#52A9FF" aria-hidden="true"></span><b>Blau</b> — reicht nicht für den SF50, aber die PC-12 käme hin</span>
+      <span><span class="dot" style="color:#FF6B5E;background:#FF6B5E" aria-hidden="true"></span><b>Korallrot</b> — SF50 auch gewerblich: alle vier Szenarien möglich</span>
+      <span><span class="dot" style="color:#F2C14E;background:#F2C14E" aria-hidden="true"></span><b>Gold</b> — SF50 privat; die PC-12 kann hier beides</span>
+      <span><span class="dot" style="color:#52A9FF;background:#52A9FF" aria-hidden="true"></span><b>Blau</b> — nur PC-12, privat und gewerblich</span>
+      <span><span class="dot" style="color:#2FBFC9;background:#2FBFC9" aria-hidden="true"></span><b>Türkis</b> — nur PC-12 privat</span>
       <span><span class="dot" style="color:#333F4D;background:#333F4D;box-shadow:none" aria-hidden="true"></span><b>Grau</b> — Piste für beide zu kurz</span>
+      <span style="color:var(--dim)">Das gewählte Szenario dimmt alle Plätze, die es nicht erfüllen.</span>
     </div>
     <div class="sec"><span class="ic" aria-hidden="true">3</span><p><b>Jeden Punkt anklicken:</b> Details mit Pistenlänge und allen vier Urteilen — von dort aus Reichweiten-Ringe einblenden oder das <b>Routen-Duell</b> starten (zweiten Platz anklicken: Flugzeit, Verbrauch und CO₂ beider Muster im Vergleich).</p></div>
     <div class="sec"><span class="ic" aria-hidden="true">ℹ</span><p>Grundlage: Herstellerdaten (SF50-Flughandbuch, Pilatus-Werksangaben) und Pistenlängen aus OurAirports, gerechnet für Meereshöhe, Standardtag, trockene Bahn. Eine Planungshilfe zur Vorauswahl — keine Flugvorbereitung. Details unter „Rechengrundlage“ links.</p></div>
@@ -109,11 +117,14 @@
 
 <script type="module" src="/src/main.ts"></script>
 <script>
-// Übergangslösung: Solange GitHub Pages noch im Branch-Modus ausliefert
-// (Quelle nicht auf "GitHub Actions" umgestellt), kommt diese Datei
-// unkompiliert an — dann zum archivierten Prototyp umleiten.
-// Im gebauten Zustand zeigt der Module-Script auf assets/*.js → No-op.
-if (document.querySelector('script[type="module"][src$=".ts"]'))
+// Sicherung: Wird diese Datei unkompiliert von GitHub Pages ausgeliefert
+// (Pages-Quelle fälschlich auf Branch-Modus), zum archivierten Prototyp
+// umleiten. Im Build zeigt der Module-Script auf assets/*.js → No-op;
+// im Vite-Dev-Modus verrät der injizierte /@vite/client-Script den Dev-Server.
+if (
+  document.querySelector('script[type="module"][src$=".ts"]') &&
+  !document.querySelector('script[src*="@vite/client"]')
+)
   location.replace("legacy/prototype.html");
 </script>
 </body>

@@ -8,6 +8,8 @@ export interface AppState {
   useGrass: boolean;
   /** ISO-Ländercode oder "" für alle */
   country: string;
+  /** Passagiere für Reichweiten-Berechnung (MTOW-Modell, siehe logic/range.ts) */
+  paxCount: number;
   /** ausgewählter Platz (Detailkarte) */
   selected: Airport | null;
   /** Platz, um den Reichweiten-Ringe liegen */
@@ -26,6 +28,7 @@ const state: AppState = {
   marginPct: 0,
   useGrass: true,
   country: "",
+  paxCount: 4,
   selected: null,
   ringsFor: null,
   routeA: null,

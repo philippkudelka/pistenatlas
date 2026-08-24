@@ -5,10 +5,11 @@ import {
   type ScenarioId,
 } from "../logic/classify.ts";
 import { COUNTRY_NAMES } from "../logic/constants.ts";
+import { rangeAtPax } from "../logic/range.ts";
 import type { Airport, Verdict } from "../logic/types.ts";
 import { fmtInt } from "../app/format.ts";
 import { getState, setState, subscribe, type AppState } from "../app/state.ts";
-import { COLORS } from "../app/colors.ts";
+import { COLORS, TIER_COLORS, TIER_LABELS } from "../app/colors.ts";
 
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -87,23 +88,22 @@ function updateHero(airports: Airport[], s: AppState): void {
   const diff = nOther - nSelf;
   el("hCmp").innerHTML = isSf
     ? diff > 0
-      ? `Zum Vergleich: die <b style="color:${COLORS.pc12}">PC-12</b> käme ${op} auf <b>${fmtInt(nOther)}</b> Plätze (+${fmtInt(diff)}${!s.country || s.country === "DE" ? `, in DE +${fmtInt(dOther - dSelf)}` : ""}) — die blauen Punkte zeigen, wo nur sie hinkommt.`
+      ? `Zum Vergleich: die <b style="color:${COLORS.pc12}">PC-12</b> käme ${op} auf <b>${fmtInt(nOther)}</b> Plätze (+${fmtInt(diff)}${!s.country || s.country === "DE" ? `, in DE +${fmtInt(dOther - dSelf)}` : ""}) — blaue und türkise Punkte kann nur sie bedienen.`
       : `Die PC-12 käme ${op} auf ${fmtInt(nOther)} Plätze.`
     : `Zum Vergleich: der <b style="color:${COLORS.sf50}">SF50</b> käme ${op} nur auf <b>${fmtInt(nOther)}</b> Plätze (${fmtInt(diff)})${!s.country || s.country === "DE" ? `, in Deutschland <b>${fmtInt(dOther)}</b> statt ${fmtInt(dSelf)}` : ""}.`;
 }
 
 function updateLegend(s: AppState): void {
   const meta = SCENARIOS[s.scenario];
-  const isSf = meta.ac === "sf50";
-  const op = meta.op === "priv" ? "privat" : "gewerblich";
+  const rows = ([4, 3, 2, 1, 0] as const)
+    .map((t) => {
+      const shadow = t === 0 ? ";box-shadow:none" : "";
+      return `<span class="dot" style="color:${TIER_COLORS[t]};background:${TIER_COLORS[t]}${shadow}" aria-hidden="true"></span>${TIER_LABELS[t]}`;
+    })
+    .join("<br>");
   el("legend").innerHTML =
-    `<div class="lt">Legende</div>` +
-    `<span class="dot" style="color:${COLORS.ok};background:${COLORS.ok}" aria-hidden="true"></span>Piste reicht: <b style="color:var(--ink)">${meta.label}</b>` +
-    (isSf
-      ? `<br><span class="dot" style="color:${COLORS.alt};background:${COLORS.alt}" aria-hidden="true"></span>nur PC-12 käme hin (${op})`
-      : "") +
-    `<br><span class="dot" style="color:${COLORS.none};background:${COLORS.none};box-shadow:none" aria-hidden="true"></span>für beide zu kurz` +
-    `<div class="hint">Punkt anklicken → Details, Reichweite &amp; Routen-Duell · ? oben rechts erklärt die Karte</div>`;
+    `<div class="lt">Legende</div>${rows}` +
+    `<div class="hint">Volle Farbe = erfüllt <b style="color:var(--ink)">${meta.label}</b>, gedimmt = nicht · Punkt anklicken → Details, Reichweite &amp; Routen-Duell</div>`;
 }
 
 function updateRank(airports: Airport[], s: AppState): void {
@@ -163,6 +163,24 @@ export function initPanel(airports: Airport[]): void {
   el<HTMLInputElement>("grass").addEventListener("change", (e) =>
     setState({ useGrass: (e.target as HTMLInputElement).checked }),
   );
+
+  // Passagier-Regler: Reichweite nach MTOW-Modell (siehe logic/range.ts)
+  const paxInput = el<HTMLInputElement>("pax");
+  const updatePaxInfo = (): void => {
+    const pax = Number(paxInput.value);
+    el("paxV").textContent = String(pax);
+    const sf = rangeAtPax("sf50", pax);
+    const pc = rangeAtPax("pc12", pax);
+    el("paxInfo").innerHTML =
+      `Reichweite: <span style="color:${COLORS.sf50}">SF50</span> ${sf === null ? "— (max. 5 Pax)" : `${fmtInt(sf)} NM`}` +
+      ` · <span style="color:${COLORS.pc12}">PC-12</span> ${pc === null ? "—" : `${fmtInt(pc)} NM`}` +
+      `<br>Ab dem 5. Passagier (à 100 kg) geht bei MTOW Zuladung gegen Sprit; der Bahnbedarf bleibt konservativ bei max. Masse.`;
+  };
+  paxInput.addEventListener("input", () => {
+    updatePaxInfo();
+    setState({ paxCount: Number(paxInput.value) });
+  });
+  updatePaxInfo();
   const countrySel = el<HTMLSelectElement>("country");
   [...new Set(airports.map((a) => a.c))]
     .sort((a, b) =>

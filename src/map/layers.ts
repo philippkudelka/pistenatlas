@@ -2,15 +2,17 @@ import maplibregl, { type GeoJSONSource, type Map as MlMap } from "maplibre-gl";
 import type { Airport } from "../logic/types.ts";
 import {
   classify,
-  dotClass,
+  SCENARIOS,
+  tierOf,
   type ClassifyOptions,
   type ScenarioId,
 } from "../logic/classify.ts";
 import { destPoint, gcPath } from "../logic/geo.ts";
-import { PERF } from "../logic/constants.ts";
+import { PAX_REF } from "../logic/constants.ts";
+import { rangeAtPax } from "../logic/range.ts";
 import { fmtInt } from "../app/format.ts";
 
-import { COLORS } from "../app/colors.ts";
+import { COLORS, TIER_COLORS } from "../app/colors.ts";
 export { COLORS };
 
 /** Alle Atlas-Quellen und -Layer auf der geladenen Karte anlegen. */
@@ -81,14 +83,14 @@ export function addAtlasLayers(map: MlMap): void {
     },
   });
 
-  // Punkt-Glow (nur nutzbare Plätze) + Punkte
+  // Punkt-Glow (nur Plätze, die das gewählte Szenario erfüllen) + Punkte
   map.addLayer({
     id: "airports-glow",
     type: "circle",
     source: "airports",
-    filter: ["!=", ["get", "cls"], "none"],
+    filter: ["all", [">", ["get", "tier"], 0], ["==", ["get", "on"], 1]],
     paint: {
-      "circle-color": ["match", ["get", "cls"], "ok", COLORS.ok, COLORS.alt],
+      "circle-color": tierColorExpr(),
       "circle-blur": 1.1,
       "circle-opacity": 0.4,
       "circle-radius": radiusExpr(2.4),
@@ -99,27 +101,20 @@ export function addAtlasLayers(map: MlMap): void {
     type: "circle",
     source: "airports",
     paint: {
-      "circle-color": [
-        "match",
-        ["get", "cls"],
-        "ok",
-        COLORS.ok,
-        "alt",
-        COLORS.alt,
-        COLORS.none,
-      ],
+      "circle-color": tierColorExpr(),
       "circle-radius": radiusExpr(1),
-      "circle-opacity": ["case", ["==", ["get", "cls"], "none"], 0.4, 1],
+      "circle-opacity": dotOpacityExpr(false),
       "circle-stroke-width": [
         "case",
-        ["==", ["get", "cls"], "none"],
-        0,
+        ["==", ["get", "on"], 1],
         0.6,
+        0,
       ],
       "circle-stroke-color": "rgba(255,255,255,.35)",
     },
     layout: {
-      "circle-sort-key": ["match", ["get", "cls"], "ok", 2, "alt", 1, 0],
+      // erfüllende Punkte über gedimmten, höhere Stufe über niedriger
+      "circle-sort-key": ["+", ["get", "tier"], ["*", ["get", "on"], 5]],
     },
   });
 
@@ -151,19 +146,54 @@ export function addAtlasLayers(map: MlMap): void {
   });
 }
 
-/** Zoomabhängiger Punktradius; Basisgröße je Klasse, Faktor für den Glow. */
+/** Farbe je Eignungs-Stufe (Property "tier", 0–4). */
+function tierColorExpr(): maplibregl.ExpressionSpecification {
+  return [
+    "match",
+    ["get", "tier"],
+    4,
+    TIER_COLORS[4],
+    3,
+    TIER_COLORS[3],
+    2,
+    TIER_COLORS[2],
+    1,
+    TIER_COLORS[1],
+    TIER_COLORS[0],
+  ] as maplibregl.ExpressionSpecification;
+}
+
+/**
+ * Deckkraft: volle Farbe, wenn der Platz das gewählte Szenario erfüllt
+ * ("on" = 1), sonst gedimmt; graue Stufe 0 immer schwach.
+ * `routeDim` dimmt zusätzlich während des Routen-Duells.
+ */
+function dotOpacityExpr(routeDim: boolean): maplibregl.ExpressionSpecification {
+  const onFull = routeDim ? 0.28 : 1;
+  const off = routeDim ? 0.1 : 0.3;
+  const zero = routeDim ? 0.08 : 0.25;
+  return [
+    "case",
+    ["==", ["get", "tier"], 0],
+    zero,
+    ["==", ["get", "on"], 1],
+    onFull,
+    off,
+  ] as maplibregl.ExpressionSpecification;
+}
+
+/** Zoomabhängiger Punktradius; erfüllende Punkte größer, Stufe 0 klein. */
 function radiusExpr(
   factor: number,
 ): maplibregl.DataDrivenPropertyValueSpecification<number> {
   const size = (base: number) =>
     [
-      "match",
-      ["get", "cls"],
-      "ok",
-      base,
-      "alt",
-      base * 0.85,
+      "case",
+      ["==", ["get", "tier"], 0],
       base * 0.45,
+      ["==", ["get", "on"], 1],
+      base,
+      base * 0.7,
     ] as maplibregl.ExpressionSpecification;
   return [
     "interpolate",
@@ -178,7 +208,11 @@ function radiusExpr(
   ] as maplibregl.ExpressionSpecification;
 }
 
-/** Punkte gemäß Szenario/Optionen einfärben und (bei Länderfilter) ausblenden. */
+/**
+ * Punkte gemäß Optionen klassifizieren: Farbe = Eignungs-Stufe (fest),
+ * "on" = erfüllt das gewählte Szenario (volle Deckkraft). Länderfilter
+ * blendet fremde Plätze aus.
+ */
 export function updateAirports(
   map: MlMap,
   airports: Airport[],
@@ -186,13 +220,15 @@ export function updateAirports(
   opt: ClassifyOptions,
   country: string,
 ): void {
+  const key = SCENARIOS[scenario].key;
   const features = [];
   for (let idx = 0; idx < airports.length; idx++) {
     const a = airports[idx]!;
     if (country && a.c !== country) continue;
+    const v = classify(a, opt);
     features.push({
       type: "Feature" as const,
-      properties: { idx, cls: dotClass(classify(a, opt), scenario) },
+      properties: { idx, tier: tierOf(v), on: v[key] ? 1 : 0 },
       geometry: { type: "Point" as const, coordinates: [a.lo, a.la] },
     });
   }
@@ -202,28 +238,35 @@ export function updateAirports(
   });
 }
 
-/** Reichweiten-Ringe beider Muster um einen Platz (oder alles entfernen). */
-export function updateRings(map: MlMap, a: Airport | null): void {
+/**
+ * Reichweiten-Ringe beider Muster um einen Platz (oder alles entfernen).
+ * `pax` bestimmt die Reichweite (MTOW-Modell); kann ein Muster die
+ * Passagierzahl nicht tragen (SF50 > 5), entfällt sein Ring.
+ */
+export function updateRings(map: MlMap, a: Airport | null, pax: number): void {
   const features = [];
   if (a) {
     for (const ac of ["pc12", "sf50"] as const) {
+      const range = rangeAtPax(ac, pax);
+      if (range === null) continue;
       const ring: [number, number][] = [];
       for (let brg = 0; brg <= 360; brg += 3) {
-        const [la, lo] = destPoint(a.la, a.lo, brg, PERF[ac].rangeNm);
+        const [la, lo] = destPoint(a.la, a.lo, brg, range);
         ring.push([lo, la]);
       }
       const color = COLORS[ac === "sf50" ? "sf50" : "pc12"];
+      const paxSuffix = pax === PAX_REF ? "" : ` · ${pax} Pax`;
       features.push({
         type: "Feature" as const,
         properties: { color },
         geometry: { type: "Polygon" as const, coordinates: [ring] },
       });
-      const [lla, llo] = destPoint(a.la, a.lo, 25, PERF[ac].rangeNm);
+      const [lla, llo] = destPoint(a.la, a.lo, 25, range);
       features.push({
         type: "Feature" as const,
         properties: {
           color,
-          label: `${ac === "sf50" ? "SF50" : "PC-12"} ${fmtInt(PERF[ac].rangeNm)} NM`,
+          label: `${ac === "sf50" ? "SF50" : "PC-12"} ${fmtInt(range)} NM${paxSuffix}`,
         },
         geometry: { type: "Point" as const, coordinates: [llo, lla] },
       });
@@ -267,13 +310,7 @@ export function updateRoute(
   });
   // Während des Duells alle übrigen Punkte dimmen
   const dim = !!(a && b);
-  map.setPaintProperty(
-    "airports-dots",
-    "circle-opacity",
-    dim
-      ? ["case", ["==", ["get", "cls"], "none"], 0.12, 0.28]
-      : ["case", ["==", ["get", "cls"], "none"], 0.4, 1],
-  );
+  map.setPaintProperty("airports-dots", "circle-opacity", dotOpacityExpr(dim));
   map.setPaintProperty("airports-glow", "circle-opacity", dim ? 0.1 : 0.4);
 }
 

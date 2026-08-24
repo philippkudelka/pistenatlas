@@ -55,14 +55,25 @@ export interface AircraftPerf {
   lph: number;
   /** true, wenn der Verbrauchswert eine Schätzung ist (kein AFM-Wert) */
   lphEstimated: boolean;
-  /** Reichweite in NM (4 Pax, LRC) */
+  /** Reichweite in NM (bei PAX_REF Passagieren, LRC) */
   rangeNm: number;
+  /** maximale Passagierzahl (Erwachsene) */
+  seatsMax: number;
 }
 
 export const PERF: Record<"sf50" | "pc12", AircraftPerf> = {
-  sf50: { name: "SF50 Vision Jet", tas: 305, lph: 227, lphEstimated: false, rangeNm: 1275 }, // 227 l/h: AFM-Ableitung
-  pc12: { name: "Pilatus PC-12", tas: 285, lph: 245, lphEstimated: true, rangeNm: 1803 }, // ~245 l/h: Schätzung
+  // 227 l/h: AFM-Ableitung; max. 5 erwachsene Passagiere
+  sf50: { name: "SF50 Vision Jet", tas: 305, lph: 227, lphEstimated: false, rangeNm: 1275, seatsMax: 5 },
+  // ~245 l/h: Schätzung; Executive-Bestuhlung bis 8 Passagiere
+  pc12: { name: "Pilatus PC-12", tas: 285, lph: 245, lphEstimated: true, rangeNm: 1803, seatsMax: 8 },
 };
+
+/** Referenz-Passagierzahl, für die die Reichweiten oben gelten. */
+export const PAX_REF = 4;
+/** Masse je Passagier inkl. Gepäck in kg (gerundete Planungsannahme). */
+export const KG_PER_PAX = 100;
+/** Dichte Jet A-1 in kg/l. */
+export const FUEL_DENSITY = 0.8;
 
 /** CO₂-Emissionsfaktor fossiles Jet A-1: 3,16 kg CO₂ je kg Kraftstoff, Dichte 0,80 kg/l → kg CO₂ je Liter. */
 export const CO2_PER_LITRE = 3.16 * 0.8;
