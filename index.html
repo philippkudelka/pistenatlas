@@ -90,19 +90,36 @@
 <div id="introWrap" role="dialog" aria-modal="true" aria-label="Erklärung">
   <div id="intro">
     <h2>Pistenatlas SF50 × PC-12</h2>
-    <p class="sub">Zwei Flugzeuge stehen zur Wahl: der Cirrus SF50 Vision Jet und die Pilatus PC-12. Diese Karte zeigt für jeden europäischen Flugplatz, ob seine Piste für das jeweilige Muster lang genug ist.</p>
-    <div class="sec"><span class="ic" aria-hidden="true">1</span><p><b>Oben links ein Szenario wählen.</b> „Privat“ rechnet mit den Werten aus dem Flughandbuch. „Gewerblich“ rechnet mit den gesetzlichen Sicherheitszuschlägen für kommerzielle Flüge (z.&nbsp;B. Charter) — ein Jet muss dann innerhalb von 60&nbsp;% der Piste zum Stehen kommen, deshalb schrumpft die Auswahl deutlich.</p></div>
-    <div class="sec"><span class="ic" aria-hidden="true">2</span><p><b>Die Farben lesen:</b></p></div>
+    <p class="sub">Zwei Flugzeuge stehen zur Wahl: der Cirrus SF50 Vision Jet und die Pilatus PC-12. Diese Karte zeigt für jeden europäischen Flugplatz, ob seine Piste für das jeweilige Muster lang genug ist — privat und gewerblich. So wird sie bedient:</p>
+
+    <div class="sec"><span class="ic" aria-hidden="true">1</span><p><b>Szenario wählen (oben links).</b> Die vier Buttons stellen die Frage „Was kann …?“: SF50 oder PC-12, jeweils privat oder gewerblich. Die große Zahl darunter zeigt, wie viele Flugplätze das gewählte Szenario erfüllen; der Satz darunter vergleicht automatisch mit dem anderen Muster. „Privat“ rechnet mit den Werten aus dem Flughandbuch, „gewerblich“ mit den gesetzlichen Sicherheitszuschlägen für kommerzielle Flüge (z.&nbsp;B. Charter) — ein Jet muss dann innerhalb von 60&nbsp;% der Piste zum Stehen kommen, deshalb schrumpft die Auswahl deutlich.</p></div>
+
+    <div class="sec"><span class="ic" aria-hidden="true">2</span><p><b>Die Farben lesen.</b> Jeder Punkt ist ein Flugplatz; die Farbe zeigt seine höchste Eignungsstufe — unabhängig vom gewählten Szenario:</p></div>
     <div class="dots">
       <span><span class="dot" style="color:#FF6B5E;background:#FF6B5E" aria-hidden="true"></span><b>Korallrot</b> — SF50 auch gewerblich: alle vier Szenarien möglich</span>
       <span><span class="dot" style="color:#F2C14E;background:#F2C14E" aria-hidden="true"></span><b>Gold</b> — SF50 privat; die PC-12 kann hier beides</span>
       <span><span class="dot" style="color:#52A9FF;background:#52A9FF" aria-hidden="true"></span><b>Blau</b> — nur PC-12, privat und gewerblich</span>
       <span><span class="dot" style="color:#2FBFC9;background:#2FBFC9" aria-hidden="true"></span><b>Türkis</b> — nur PC-12 privat</span>
       <span><span class="dot" style="color:#333F4D;background:#333F4D;box-shadow:none" aria-hidden="true"></span><b>Grau</b> — Piste für beide zu kurz</span>
-      <span style="color:var(--dim)">Das gewählte Szenario dimmt alle Plätze, die es nicht erfüllen.</span>
+      <span style="color:var(--dim)">Das gewählte Szenario dimmt alle Plätze, die es nicht erfüllen — volle Farbe heißt: hier geht das Gewählte.</span>
     </div>
-    <div class="sec"><span class="ic" aria-hidden="true">3</span><p><b>Jeden Punkt anklicken:</b> Details mit Pistenlänge und allen vier Urteilen — von dort aus Reichweiten-Ringe einblenden oder das <b>Routen-Duell</b> starten (zweiten Platz anklicken: Flugzeit, Verbrauch und CO₂ beider Muster im Vergleich).</p></div>
-    <div class="sec"><span class="ic" aria-hidden="true">ℹ</span><p>Grundlage: Herstellerdaten (SF50-Flughandbuch, Pilatus-Werksangaben) und Pistenlängen aus OurAirports, gerechnet für Meereshöhe, Standardtag, trockene Bahn. Eine Planungshilfe zur Vorauswahl — keine Flugvorbereitung. Details unter „Rechengrundlage“ links.</p></div>
+
+    <div class="sec"><span class="ic" aria-hidden="true">3</span><p><b>Karte bewegen.</b> Ziehen mit Maus oder Finger verschiebt den Ausschnitt; Scrollrad, Zwei-Finger-Geste oder die Buttons <b>+</b>/<b>−</b> zoomen. <b>DE</b> springt nach Deutschland, <b>EU</b> zurück auf ganz Europa. Auch per Tastatur: Pfeiltasten verschieben, +/− zoomen. Wer mit der Maus über einem Punkt verweilt, sieht Kennung und Name.</p></div>
+
+    <div class="sec"><span class="ic" aria-hidden="true">4</span><p><b>Flugplatz anklicken → Detailkarte.</b> Sie zeigt Name, ICAO-Kennung und Ort. Der helle Balken ist die längste befestigte Bahn, der grün gestreifte eine Grasbahn. Die vier Striche darüber markieren den Bahnbedarf: <b style="color:#FF6B5E">S·P / S·G</b> = SF50 privat/gewerblich, <b style="color:#52A9FF">P·P / P·G</b> = PC-12 privat/gewerblich. Reicht der Balken über einen Strich hinaus, ist die Piste dafür lang genug — die 2×2-Tafel darunter fasst alle vier Urteile als NUTZBAR / ZU KURZ zusammen.</p></div>
+
+    <div class="sec"><span class="ic" aria-hidden="true">5</span><p><b>„◎ Reichweite ab hier“.</b> Blendet zwei gestrichelte Ringe um den Platz ein: so weit kommen SF50 (rot) und PC-12 (blau) von dort — gerechnet mit der eingestellten Passagierzahl. Esc oder ein Klick auf einen anderen Platz blendet sie wieder aus.</p></div>
+
+    <div class="sec"><span class="ic" aria-hidden="true">6</span><p><b>„➔ Routen-Duell“.</b> Erst Startplatz anklicken und den Button drücken, dann den Zielplatz anklicken. Für beide Muster erscheinen Flugzeit, Verbrauch und CO₂ im direkten Vergleich — plus die Antwort, ob Start- <i>und</i> Zielplatz privat bzw. gewerblich bedienbar sind. Liegt das Ziel außerhalb der Reichweite, steht dort „—“. Schließen mit × oder Esc.</p></div>
+
+    <div class="sec"><span class="ic" aria-hidden="true">7</span><p><b>Suchen und springen.</b> Das Suchfeld findet ab zwei Zeichen nach ICAO-Kennung (z.&nbsp;B. EDRK), Name oder Ort und bietet eine Vorschlagsliste; ein Treffer fliegt die Karte dorthin und öffnet die Details. Darunter: Schnellsprung nach Koblenz und Speyer.</p></div>
+
+    <div class="sec"><span class="ic" aria-hidden="true">8</span><p><b>Feinjustieren (Menü „Filter &amp; Feinjustierung“).</b> <b>Land</b> begrenzt Karte und Zahlen auf ein Land. Die <b>Sicherheitsmarge</b> (+0 bis +30&nbsp;%) verlängert alle Bahnbedarfe — sinnvoll für Höhe, Hitze oder nasse Bahn. Der <b>Gras-Schalter</b> zählt Naturpisten mit oder eben nicht (nur die PC-12 darf auf Gras). Der Regler <b>Passagiere</b> (1–8) rechnet die Reichweite aufs Abfluggewicht um: ab dem fünften Passagier geht Zuladung gegen Sprit, die Ringe und das Routen-Duell passen sich an — der SF50 trägt maximal fünf.</p></div>
+
+    <div class="sec"><span class="ic" aria-hidden="true">9</span><p><b>Mehr Tiefe.</b> Das <b>Länder-Ranking</b> zeigt, welche Länder die meisten nutzbaren Plätze bieten. Die <b>Rechengrundlage</b> listet alle Zahlen, Quellen und Vorbehalte auf. Esc schließt jedes Fenster; diese Erklärung öffnet jederzeit wieder das <b>?</b> rechts oben. Auf dem Handy öffnet ☰ die Steuerung.</p></div>
+
+    <div class="sec"><span class="ic" aria-hidden="true">ℹ</span><p>Grundlage: Herstellerdaten (SF50-Flughandbuch, Pilatus-Werksangaben) und Pistenlängen aus OurAirports, gerechnet für Meereshöhe, Standardtag, trockene Bahn. Eine Planungshilfe zur Vorauswahl — keine Flugvorbereitung.</p></div>
+
     <button id="introGo">Karte erkunden</button>
     <p id="introNote">Diese Erklärung lässt sich jederzeit über das ?-Symbol rechts oben wieder öffnen.</p>
   </div>

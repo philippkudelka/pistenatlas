@@ -11,7 +11,10 @@ let lastFocus: HTMLElement | null = null;
 export function showIntro(): void {
   lastFocus = document.activeElement as HTMLElement | null;
   wrap().classList.add("open");
-  document.getElementById("introGo")?.focus();
+  // Fokus ohne Scrollen setzen — die Erklärung soll oben beginnen
+  document.getElementById("introGo")?.focus({ preventScroll: true });
+  const intro = document.getElementById("intro");
+  if (intro) intro.scrollTop = 0;
 }
 
 export function hideIntro(): void {
