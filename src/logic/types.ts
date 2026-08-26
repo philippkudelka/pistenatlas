@@ -20,6 +20,10 @@ export interface Airport {
   u: number;
   /** Flugplatzgröße laut OurAirports: "s" small, "m" medium, "l" large */
   t: "s" | "m" | "l";
+  /** Platzhöhe in ft (0 = unbekannt) */
+  e: number;
+  /** 1 = mutmaßlich militärisch (Namens-Heuristik) */
+  mi?: 1;
 }
 
 export type AircraftId = "sf50" | "pc12";

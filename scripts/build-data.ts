@@ -9,7 +9,7 @@
  * ein Refresh ist nur nötig, wenn aktuellere OurAirports-Daten gewünscht sind.
  */
 import { writeFileSync, mkdirSync } from "node:fs";
-import { COUNTRY_NAMES } from "../src/logic/constants.ts";
+import { COUNTRY_NAMES } from "../src/app/countries.ts";
 
 const AIRPORTS_URL =
   "https://davidmegginson.github.io/ourairports-data/airports.csv";
