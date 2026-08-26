@@ -13,16 +13,27 @@ Eine sichtbare Frage, ein Bedienelement, ein dominantes Ergebnis: Szenario
 wählen → eine große Zahl + Vergleichssatz. Alles Sekundäre ist eingeklappt
 (`<details>`). Keine parallelen Modi, keine Dashboard-Überladung.
 
-## Fachlogik
+## Fachlogik — „keine offene Variable“ (hartes Prinzip)
 
-- Alle Bahnbedarfe/Leistungsdaten sind **dokumentierte Konstanten mit
-  Quellenkommentar** in `src/logic/constants.ts`. Nie Zahlen inline
-  hartcodieren; nie Werte ändern ohne Quellenangabe im Kommentar.
-- Klassifikation (`src/logic/classify.ts`) und Geodäsie (`src/logic/geo.ts`)
-  sind reine Funktionen ohne DOM/Map-Abhängigkeit und vollständig getestet
-  (`tests/`). Änderungen an der Fachlogik brauchen Tests, besonders
-  Grenzwerte exakt auf der Schwelle.
+- **ALLE Modellkonstanten** leben in `src/model/constants.ts` als
+  `{value, unit, source, editable}` — Quellen: AFM / Werksangabe / EASA /
+  Schätzung. Ein Unit-Test erzwingt die Quelle je Eintrag. Magic Numbers
+  außerhalb dieses Moduls sind verboten; neue Zahlen IMMER dort eintragen.
+- Das Annahmen-Panel (`src/ui/assumptions.ts`) rendert das Register live;
+  editierbare Werte laufen über `state.overrides` und `val(key, overrides)`.
+- Jede Ergebnisanzeige trägt eine Fall-Fußzeile (`caseLabel()` aus
+  `src/app/compute.ts`). Neue Anzeigen ohne Fallangabe sind ein Regelverstoß.
+- Fachmodell rein und getestet: `src/model/{loading,runway,mission,verdict}.ts`
+  — Beladung (harte MTOM/MZFW-Fehler, kein Clamping), Bahnbedarf
+  ((TOM/MTOM)², Höhenzuschlag, CAT/nass/Gras/Marge), Missionsreichweite.
+- **Kalibriertests nicht anfassen:** SF50 2P/voll/Sparflug = 1.275 NM ± 3 %,
+  PC-12 4P/voll/Sparflug = 1.803 NM ± 3 % (tests/model.test.ts). Wer
+  Verbrauchs-/Reserve-Parameter ändert, muss die Kalibrierung halten.
 - SF50 darf **nie** auf Gras (AFM-Limitation) — das ist keine Einstellung.
+- SF50-Startstrecke ist der AFM-Wert 973 m, NICHT die 858 m der Website.
+- Deklarierte Distanzen (`public/data/declared_distances.json`) schlagen die
+  physische Pistenlänge; Einträge nur mit Quellenvermerk ergänzen.
+- Kein Klarname des Investors irgendwo im Repo oder UI.
 
 ## Architektur
 
@@ -40,10 +51,11 @@ wählen → eine große Zahl + Vergleichssatz. Alles Sekundäre ist eingeklappt
 
 - `public/data/airports.json` wird von `scripts/build-data.ts` erzeugt
   (`npm run data`) und **eingecheckt**. Format: kompakte Objekte
-  `{i,n,la,lo,c,m,p,g,u,t}` — dokumentiert in `src/logic/types.ts`.
-- Die Stichprobenprüfung im Skript (EDRK/EDRY/EDDF) nicht entfernen; bei
-  Abweichung bricht das Skript bewusst ab.
-- Datei muss < 500 KB bleiben.
+  `{i,n,la,lo,c,m,p,g,u,t,e,mi?}` — dokumentiert in `src/logic/types.ts`
+  (e = Platzhöhe ft, mi = Militär-Heuristik).
+- Die Stichprobenprüfung im Skript (EDRK/EDRY/EDDF inkl. Elevation) nicht
+  entfernen; bei Abweichung bricht das Skript bewusst ab.
+- Datei muss < 600 KB bleiben.
 
 ## Qualität
 
