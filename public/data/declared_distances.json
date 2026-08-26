@@ -1,0 +1,4 @@
+{
+  "_hinweis": "Deklarierte Distanzen (TORA/LDA) laut AIP, wo bekannt — überschreiben die physische Pistenlänge für das Platz-Urteil. Physische Länge und deklarierte Strecke können deutlich abweichen.",
+  "EDRY": { "declared_m": 1400, "quelle": "AIP Deutschland; Beispiel aus Referenz-Analyse: 1.677 m gebaut, 1.400 m deklariert" }
+}

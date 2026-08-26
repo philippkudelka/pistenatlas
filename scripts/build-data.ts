@@ -179,6 +179,15 @@ const aLat = col(aHead, "latitude_deg");
 const aLon = col(aHead, "longitude_deg");
 const aCountry = col(aHead, "iso_country");
 const aCity = col(aHead, "municipality");
+const aElev = col(aHead, "elevation_ft");
+
+/**
+ * Militär-Heuristik über den Namen (wie im Referenz-Excel dokumentiert:
+ * "Namens-Heuristik, ggf. unvollständig"). Kennzeichnet, schließt nicht aus —
+ * der Filter dafür sitzt im UI (Default: eingeschlossen mit Kennzeichnung).
+ */
+const MILITARY_RE =
+  /\b(air ?base|airbase|fliegerhorst|heeresflugplatz|military|air force|army|naval|navy|luftwaffe|air station|caserma|base aerea|base aérea|base aerienne|base aérienne|raf |afb)\b/i;
 
 interface OutAirport {
   i: string;
@@ -191,6 +200,10 @@ interface OutAirport {
   g: number;
   u: number;
   t: "s" | "m" | "l";
+  /** Platzhöhe in ft (0, wenn unbekannt) */
+  e: number;
+  /** 1 = mutmaßlich militärisch (Namens-Heuristik), sonst nicht gesetzt */
+  mi?: 1;
 }
 
 const out: OutAirport[] = [];
@@ -214,9 +227,11 @@ for (let i = 1; i < aRows.length; i++) {
   const ident = a[aIdent]!;
   const rw = runways.get(ident);
   if (!rw || (rw.paved === 0 && rw.natural === 0 && rw.unknown === 0)) continue;
-  out.push({
+  const name = a[aName]!;
+  const elevFt = Number(a[aElev]);
+  const entry: OutAirport = {
     i: ident,
-    n: a[aName]!,
+    n: name,
     la: Math.round(la * 1000) / 1000,
     lo: Math.round(lo * 1000) / 1000,
     c: country,
@@ -225,7 +240,10 @@ for (let i = 1; i < aRows.length; i++) {
     g: rw.natural,
     u: rw.unknown,
     t: type[0] as "s" | "m" | "l",
-  });
+    e: Number.isFinite(elevFt) ? Math.round(elevFt) : 0,
+  };
+  if (MILITARY_RE.test(name)) entry.mi = 1;
+  out.push(entry);
 }
 out.sort((x, y) => x.i.localeCompare(y.i));
 
@@ -240,11 +258,11 @@ function check(ident: string, expect: Partial<OutAirport>): void {
         `Stichprobe fehlgeschlagen: ${ident}.${k} = ${got}, erwartet ${v}`,
       );
   }
-  console.log(`  ✓ ${ident}: p=${a.p} g=${a.g} u=${a.u}`);
+  console.log(`  ✓ ${ident}: p=${a.p} g=${a.g} u=${a.u} e=${a.e} ft`);
 }
 console.log("Stichprobenprüfung:");
-check("EDRK", { p: 1175 }); // Koblenz-Winningen: 1.175 m befestigt
-check("EDRY", { p: 1677, g: 1000 }); // Speyer: 1.677 m befestigt + 1.000 m Gras
+check("EDRK", { p: 1175, e: 640 }); // Koblenz-Winningen: 1.175 m befestigt, 640 ft
+check("EDRY", { p: 1677, g: 1000, e: 312 }); // Speyer: 1.677 m + 1.000 m Gras, 312 ft
 check("EDDF", { p: 4000 }); // Frankfurt: 4.000 m
 
 // --- Schreiben --------------------------------------------------------------
@@ -253,6 +271,7 @@ const json = JSON.stringify(out);
 writeFileSync(OUT, json);
 const kb = Math.round(json.length / 1024);
 console.log(`\n${out.length} Flugplätze → ${OUT} (${kb} KB)`);
-if (kb > 500) throw new Error(`Datei zu groß: ${kb} KB > 500 KB`);
+if (kb > 600) throw new Error(`Datei zu groß: ${kb} KB > 600 KB`);
 const de = out.filter((a) => a.c === "DE").length;
-console.log(`davon Deutschland: ${de}`);
+const mil = out.filter((a) => a.mi).length;
+console.log(`davon Deutschland: ${de}, als militärisch gekennzeichnet: ${mil}`);
