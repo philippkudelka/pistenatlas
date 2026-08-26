@@ -31,11 +31,42 @@
     <button data-v="3" style="--c:var(--pc12)" aria-pressed="false"><em>PC-12</em>gewerblich</button>
   </div>
 
+  <details id="loadD">
+    <summary id="loadSummary">Beladung: <span id="loadChips" class="mono"></span></summary>
+    <div class="lbl" style="margin-top:9px">Voreinstellungen</div>
+    <div class="quick" id="loadPresets">
+      <button data-preset="v2">2 P. · voll</button>
+      <button data-preset="v3">4 P. · max. Tank</button>
+      <button data-preset="v4">6 P. · max. Tank</button>
+      <button data-preset="free">frei</button>
+    </div>
+    <div class="row" style="margin-top:11px"><label for="persons" style="font-size:11px;color:var(--mut);width:88px">Personen</label>
+      <input type="range" id="persons" min="1" max="10" value="4" step="1">
+      <span class="mono" id="personsV" style="font-size:12px;width:38px;text-align:right;color:var(--ink)" aria-hidden="true">4</span></div>
+    <div class="row"><label for="tank" style="font-size:11px;color:var(--mut);width:88px">Tankanteil</label>
+      <input type="range" id="tank" min="0" max="100" value="100" step="5" disabled>
+      <span class="mono" id="tankV" style="font-size:12px;width:38px;text-align:right;color:var(--ink)" aria-hidden="true">max</span></div>
+    <div class="row"><input type="checkbox" id="tankMax" checked><label for="tankMax" style="font-size:11.5px;color:var(--mut)">maximal möglich tanken (MTOM-begrenzt)</label></div>
+    <div class="row"><span style="font-size:11px;color:var(--mut);width:88px" id="regimeLbl">Reiseflug</span>
+      <div class="quick" style="margin-top:0;flex:1" role="group" aria-labelledby="regimeLbl">
+        <button id="regLrc" aria-pressed="true">Sparflug</button>
+        <button id="regFast" aria-pressed="false">Schnellflug</button>
+      </div></div>
+    <div class="row"><input type="checkbox" id="wet"><label for="wet" style="font-size:11.5px;color:var(--mut)">nasse Bahn</label></div>
+    <div class="row"><label for="altMode" style="font-size:11px;color:var(--mut);width:88px">Höhenzuschlag</label>
+      <select id="altMode" style="flex:1">
+        <option value="afm">+4 % je 1.000 ft (AFM-nah)</option>
+        <option value="conservative">+9 % je 1.000 ft (konservativ)</option>
+      </select></div>
+    <div id="loadInfo" class="note"></div>
+  </details>
+
   <div id="hero">
     <b id="hNum" aria-live="polite">0</b>
     <span id="hTxt"></span>
   </div>
   <p id="hCmp"></p>
+  <p id="heroCase" class="note" style="margin-top:6px"></p>
 
   <div class="lbl"><label for="search" style="all:inherit;cursor:text">Suche</label></div>
   <input type="search" id="search" placeholder="ICAO, Name oder Ort suchen …" autocomplete="off"
@@ -54,10 +85,13 @@
       <input type="range" id="margin" min="0" max="30" value="0" step="5">
       <span class="mono" id="marginV" style="font-size:12px;width:38px;text-align:right;color:var(--ink)" aria-hidden="true">+0%</span></div>
     <div class="row"><input type="checkbox" id="grass" checked><label for="grass" style="font-size:11.5px;color:var(--mut)">Gras-/Naturpisten zählen <span style="color:var(--dim)">(nur PC-12 zugelassen)</span></label></div>
-    <div class="row" style="margin-top:11px"><label for="pax" style="font-size:11px;color:var(--mut);width:88px">Passagiere</label>
-      <input type="range" id="pax" min="1" max="8" value="4" step="1">
-      <span class="mono" id="paxV" style="font-size:12px;width:38px;text-align:right;color:var(--ink)" aria-hidden="true">4</span></div>
-    <p class="note" id="paxInfo" style="margin-top:2px"></p>
+    <div class="row"><input type="checkbox" id="military" checked><label for="military" style="font-size:11.5px;color:var(--mut)">Militärplätze anzeigen <span style="color:var(--dim)">(Namens-Heuristik, gekennzeichnet)</span></label></div>
+  </details>
+
+  <details id="assumeD">
+    <summary>Annahmen (alle Modellkonstanten)</summary>
+    <p class="note" style="margin-top:8px">Jede Zahl, die in ein Ergebnis eingeht, steht hier — mit Quelle. Blau markierte Werte sind editierbar; Änderungen wirken sofort auf Karte, Ringe und Routen-Duell.</p>
+    <div id="assumeList"></div>
   </details>
 
   <details id="rankD"><summary>Länder-Ranking</summary><div id="rank"></div></details>
@@ -74,8 +108,9 @@
       <tr><td>Reichweite (4 Pax, LRC)</td><td class="num">1 275 NM</td><td class="num">1 803 NM</td></tr>
     </table>
     <p class="note">SF50: AFM P/N 31452-002 Rev. A1 (Section 2 Limitations, Section 5 Performance); gewerblich = AFM „Factored Data“ (× 1,67 trocken — 60-%-Regel für Jets, EASA CAT.POL.A.100/230). Gras ist für den SF50 per AFM-Limitation nicht zulässig. PC-12 NGX: Pilatus-Werksangaben; gewerblich = EASA-Flugleistungsklasse B (Start × 1,25, Landung ≤ 70 % LDA — CAT.POL.A.305/330/335), Gras × 1,2.</p>
-    <p class="note">Werte gelten für Meereshöhe, ISA, Windstille, trockene ebene Bahn, max. Masse — Höhe, Hitze, Nässe erhöhen den Bedarf (→ Marge). Pistendaten: OurAirports, längste Bahn je Platz; unbekannter Belag zählt nur bei größeren Plätzen als befestigt. TORA/LDA können kürzer sein, örtliche Jet-/PPR-Beschränkungen sind nicht enthalten. Vorauswahl, keine Flugvorbereitung.</p>
-    <p class="note">Passagier-Regler: Reichweiten gelten für 4 Passagiere (à 100 kg inkl. Gepäck, Tanks voll). Jeder weitere Passagier geht bei MTOW gegen Sprit — SF50 ≈ 168 NM, PC-12 ≈ 145 NM Reichweitenverlust je Passagier (aus Reiseverbrauch je NM). Weniger Passagiere bringen keine Mehr-Reichweite; der Bahnbedarf bleibt konservativ bei max. Masse. SF50 max. 5, PC-12 max. 8 Passagiere.</p>
+    <p class="note">Die Tabellenwerte sind die Basisstrecken bei maximaler Masse auf Meereshöhe. Das wirksame Urteil rechnet massen- ((Startmasse/MTOM)²), höhen- (Zuschlag je 1.000 ft Platzhöhe) und betriebsartabhängig, mit Nass- und Gras-Zuschlägen — alle Parameter mit Quelle unter „Annahmen“. Landemasse-Abschätzung: Startmasse minus Roll-/Steigflugkraftstoff, gedeckelt auf die max. Landemasse (Landung kurz nach dem Start, konservativ).</p>
+    <p class="note">Reichweite je Beladungsfall aus einem Missionsmodell (Rollen/Start, Steigflug, Reiseflug, Reserve), kalibriert auf die Herstellerangaben: SF50 „2 Personen, voll, Sparflug“ ≈ 1.275 NM; PC-12 „4 Personen, voll, Sparflug“ ≈ 1.803 NM — beide per Unit-Test abgesichert.</p>
+    <p class="note">Pistendaten: OurAirports, längste Bahn je Platz; unbekannter Belag zählt nur bei größeren Plätzen als befestigt. <b>Achtung:</b> Bahnlängen sind physische Pistenlängen — deklarierte Strecken (TORA/LDA) können deutlich kürzer sein, Beispiel Speyer EDRY: 1.677 m gebaut, 1.400 m deklariert. Wo deklarierte Werte bekannt sind (u. a. EDRY), rechnet der Atlas damit. Örtliche Jet-/PPR-Beschränkungen sind nicht enthalten. Vorauswahl, keine Flugvorbereitung.</p>
   </details>
 </aside>
 
@@ -108,15 +143,15 @@
 
     <div class="sec"><span class="ic" aria-hidden="true">4</span><p><b>Flugplatz anklicken → Detailkarte.</b> Sie zeigt Name, ICAO-Kennung und Ort. Der helle Balken ist die längste befestigte Bahn, der grün gestreifte eine Grasbahn. Die vier Striche darüber markieren den Bahnbedarf: <b style="color:#FF6B5E">S·P / S·G</b> = SF50 privat/gewerblich, <b style="color:#52A9FF">P·P / P·G</b> = PC-12 privat/gewerblich. Reicht der Balken über einen Strich hinaus, ist die Piste dafür lang genug — die 2×2-Tafel darunter fasst alle vier Urteile als NUTZBAR / ZU KURZ zusammen.</p></div>
 
-    <div class="sec"><span class="ic" aria-hidden="true">5</span><p><b>„◎ Reichweite ab hier“.</b> Blendet zwei gestrichelte Ringe um den Platz ein: so weit kommen SF50 (rot) und PC-12 (blau) von dort — gerechnet mit der eingestellten Passagierzahl. Esc oder ein Klick auf einen anderen Platz blendet sie wieder aus.</p></div>
+    <div class="sec"><span class="ic" aria-hidden="true">5</span><p><b>„◎ Reichweite ab hier“.</b> Blendet zwei gestrichelte Ringe um den Platz ein: so weit kommen SF50 (rot) und PC-12 (blau) von dort — gerechnet mit dem aktiven Beladungsfall, und genau so beschriftet (Personen, Tankanteil, Flugregime). Esc oder ein Klick auf einen anderen Platz blendet sie wieder aus.</p></div>
 
     <div class="sec"><span class="ic" aria-hidden="true">6</span><p><b>„➔ Routen-Duell“.</b> Erst Startplatz anklicken und den Button drücken, dann den Zielplatz anklicken. Für beide Muster erscheinen Flugzeit, Verbrauch und CO₂ im direkten Vergleich — plus die Antwort, ob Start- <i>und</i> Zielplatz privat bzw. gewerblich bedienbar sind. Liegt das Ziel außerhalb der Reichweite, steht dort „—“. Schließen mit × oder Esc.</p></div>
 
     <div class="sec"><span class="ic" aria-hidden="true">7</span><p><b>Suchen und springen.</b> Das Suchfeld findet ab zwei Zeichen nach ICAO-Kennung (z.&nbsp;B. EDRK), Name oder Ort und bietet eine Vorschlagsliste; ein Treffer fliegt die Karte dorthin und öffnet die Details. Darunter: Schnellsprung nach Koblenz und Speyer.</p></div>
 
-    <div class="sec"><span class="ic" aria-hidden="true">8</span><p><b>Feinjustieren (Menü „Filter &amp; Feinjustierung“).</b> <b>Land</b> begrenzt Karte und Zahlen auf ein Land. Die <b>Sicherheitsmarge</b> (+0 bis +30&nbsp;%) verlängert alle Bahnbedarfe — sinnvoll für Höhe, Hitze oder nasse Bahn. Der <b>Gras-Schalter</b> zählt Naturpisten mit oder eben nicht (nur die PC-12 darf auf Gras). Der Regler <b>Passagiere</b> (1–8) rechnet die Reichweite aufs Abfluggewicht um: ab dem fünften Passagier geht Zuladung gegen Sprit, die Ringe und das Routen-Duell passen sich an — der SF50 trägt maximal fünf.</p></div>
+    <div class="sec"><span class="ic" aria-hidden="true">8</span><p><b>Beladung einstellen (Zeile „Beladung“ unter den Szenario-Buttons).</b> Jedes Ergebnis auf dieser Karte gilt für einen konkreten Beladungsfall: Personen, Tankanteil, Flugregime (Sparflug/Schnellflug), trockene oder nasse Bahn, Höhenzuschlag-Variante. Voreinstellungen wie „2 P. · voll“ oder „6 P. · max. Tank“ decken die typischen Fälle ab; „maximal möglich tanken“ füllt so viel, wie die max. Startmasse (MTOM) zulässt. Überladung wird als Fehler gemeldet — nichts wird still gekappt. Zusätzlich im Menü „Filter“: <b>Land</b>, <b>Sicherheitsmarge</b> (+0 bis +30&nbsp;%), <b>Gras-Schalter</b> (nur PC-12) und <b>Militärplätze</b> ein/aus.</p></div>
 
-    <div class="sec"><span class="ic" aria-hidden="true">9</span><p><b>Mehr Tiefe.</b> Das <b>Länder-Ranking</b> zeigt, welche Länder die meisten nutzbaren Plätze bieten. Die <b>Rechengrundlage</b> listet alle Zahlen, Quellen und Vorbehalte auf. Esc schließt jedes Fenster; diese Erklärung öffnet jederzeit wieder das <b>?</b> rechts oben. Auf dem Handy öffnet ☰ die Steuerung.</p></div>
+    <div class="sec"><span class="ic" aria-hidden="true">9</span><p><b>Mehr Tiefe.</b> Das <b>Länder-Ranking</b> zeigt, welche Länder die meisten nutzbaren Plätze bieten. Unter <b>„Annahmen“</b> stehen alle Modellkonstanten mit Quelle (AFM, Werksangabe, EASA, Schätzung) — editierbare Werte lassen sich dort anpassen und einzeln zurücksetzen. Die <b>Rechengrundlage</b> erklärt das Rechenmodell. Esc schließt jedes Fenster; diese Erklärung öffnet jederzeit wieder das <b>?</b> rechts oben. Auf dem Handy öffnet ☰ die Steuerung.</p></div>
 
     <div class="sec"><span class="ic" aria-hidden="true">ℹ</span><p>Grundlage: Herstellerdaten (SF50-Flughandbuch, Pilatus-Werksangaben) und Pistenlängen aus OurAirports, gerechnet für Meereshöhe, Standardtag, trockene Bahn. Eine Planungshilfe zur Vorauswahl — keine Flugvorbereitung.</p></div>
 

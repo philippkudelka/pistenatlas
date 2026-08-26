@@ -1,23 +1,41 @@
-import type { ScenarioId } from "../logic/classify.ts";
+import type { ScenarioId } from "../model/verdict.ts";
+import type { Overrides } from "../model/constants.ts";
+import type { Regime } from "../model/mission.ts";
 import type { Airport } from "../logic/types.ts";
 
 /** Zentraler App-Zustand mit simplem Publish/Subscribe. */
 export interface AppState {
   scenario: ScenarioId;
+  /** Sicherheitsmarge in Prozent (0–30) */
   marginPct: number;
+  /** Gras-/Naturpisten mitzählen (nur PC-12) */
   useGrass: boolean;
   /** ISO-Ländercode oder "" für alle */
   country: string;
-  /** Passagiere für Reichweiten-Berechnung (MTOW-Modell, siehe logic/range.ts) */
-  paxCount: number;
-  /** ausgewählter Platz (Detailkarte) */
+  /** Militärplätze anzeigen (Kennzeichnung bleibt immer) */
+  includeMilitary: boolean;
+
+  // --- Beladungsfall (gilt für beide Muster) ---
+  /** Insassen inkl. Pilot */
+  persons: number;
+  /** "max" = maximal möglicher Kraftstoff, "fraction" = fester Tankanteil */
+  tankMode: "max" | "fraction";
+  /** Tankanteil 0–1 (nur bei tankMode "fraction") */
+  tankFraction: number;
+  /** nasse Bahn */
+  wet: boolean;
+  /** Höhenzuschlag: "afm" (+4 %/1.000 ft) oder "conservative" (+9 %) */
+  altMode: "afm" | "conservative";
+  /** Reiseflug-Regime für Reichweite/Routen: Sparflug oder Schnellflug */
+  regime: Regime;
+  /** Nutzeränderungen an Modellkonstanten (Annahmen-Panel) */
+  overrides: Overrides;
+
+  // --- Auswahl / Interaktion ---
   selected: Airport | null;
-  /** Platz, um den Reichweiten-Ringe liegen */
   ringsFor: Airport | null;
-  /** Routen-Duell */
   routeA: Airport | null;
   routeB: Airport | null;
-  /** true, während auf den zweiten Klick fürs Routen-Duell gewartet wird */
   routePicking: boolean;
 }
 
@@ -28,13 +46,36 @@ const state: AppState = {
   marginPct: 0,
   useGrass: true,
   country: "",
-  paxCount: 4,
+  includeMilitary: true,
+  persons: 4,
+  tankMode: "max",
+  tankFraction: 1,
+  wet: false,
+  altMode: "afm",
+  regime: "lrc",
+  overrides: {},
   selected: null,
   ringsFor: null,
   routeA: null,
   routeB: null,
   routePicking: false,
 };
+
+/** Zustands-Schlüssel, die das Platz-Urteil (und damit Karte/Hero) ändern. */
+export const MODEL_KEYS: readonly (keyof AppState)[] = [
+  "marginPct",
+  "useGrass",
+  "persons",
+  "tankMode",
+  "tankFraction",
+  "wet",
+  "altMode",
+  "overrides",
+] as const;
+
+export function modelChanged(changed: Set<keyof AppState>): boolean {
+  return MODEL_KEYS.some((k) => changed.has(k));
+}
 
 const listeners: Listener[] = [];
 

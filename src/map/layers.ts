@@ -1,16 +1,7 @@
 import maplibregl, { type GeoJSONSource, type Map as MlMap } from "maplibre-gl";
 import type { Airport } from "../logic/types.ts";
-import {
-  classify,
-  SCENARIOS,
-  tierOf,
-  type ClassifyOptions,
-  type ScenarioId,
-} from "../logic/classify.ts";
+import type { Tier } from "../model/verdict.ts";
 import { destPoint, gcPath } from "../logic/geo.ts";
-import { PAX_REF } from "../logic/constants.ts";
-import { rangeAtPax } from "../logic/range.ts";
-import { fmtInt } from "../app/format.ts";
 
 import { COLORS, TIER_COLORS } from "../app/colors.ts";
 export { COLORS };
@@ -209,26 +200,23 @@ function radiusExpr(
 }
 
 /**
- * Punkte gemäß Optionen klassifizieren: Farbe = Eignungs-Stufe (fest),
- * "on" = erfüllt das gewählte Szenario (volle Deckkraft). Länderfilter
- * blendet fremde Plätze aus.
+ * Punkte zeichnen: Farbe = Eignungs-Stufe, "on" = erfüllt das gewählte
+ * Szenario (volle Deckkraft). Die Klassifikation liefert der Aufrufer —
+ * dieses Modul kennt nur Darstellung.
  */
 export function updateAirports(
   map: MlMap,
   airports: Airport[],
-  scenario: ScenarioId,
-  opt: ClassifyOptions,
-  country: string,
+  dotOf: (a: Airport, idx: number) => { tier: Tier; on: boolean } | null,
 ): void {
-  const key = SCENARIOS[scenario].key;
   const features = [];
   for (let idx = 0; idx < airports.length; idx++) {
     const a = airports[idx]!;
-    if (country && a.c !== country) continue;
-    const v = classify(a, opt);
+    const dot = dotOf(a, idx);
+    if (!dot) continue;
     features.push({
       type: "Feature" as const,
-      properties: { idx, tier: tierOf(v), on: v[key] ? 1 : 0 },
+      properties: { idx, tier: dot.tier, on: dot.on ? 1 : 0 },
       geometry: { type: "Point" as const, coordinates: [a.lo, a.la] },
     });
   }
@@ -238,36 +226,39 @@ export function updateAirports(
   });
 }
 
+/** Ein Reichweiten-Ring: Radius in NM plus fertige Fall-Beschriftung. */
+export interface RingSpec {
+  rangeNm: number;
+  label: string;
+  color: string;
+}
+
 /**
- * Reichweiten-Ringe beider Muster um einen Platz (oder alles entfernen).
- * `pax` bestimmt die Reichweite (MTOW-Modell); kann ein Muster die
- * Passagierzahl nicht tragen (SF50 > 5), entfällt sein Ring.
+ * Reichweiten-Ringe um einen Platz (oder alles entfernen). Radius und
+ * Beschriftung (Beladungsfall!) liefert der Aufrufer.
  */
-export function updateRings(map: MlMap, a: Airport | null, pax: number): void {
+export function updateRings(
+  map: MlMap,
+  a: Airport | null,
+  rings: RingSpec[],
+): void {
   const features = [];
   if (a) {
-    for (const ac of ["pc12", "sf50"] as const) {
-      const range = rangeAtPax(ac, pax);
-      if (range === null) continue;
+    for (const spec of rings) {
       const ring: [number, number][] = [];
       for (let brg = 0; brg <= 360; brg += 3) {
-        const [la, lo] = destPoint(a.la, a.lo, brg, range);
+        const [la, lo] = destPoint(a.la, a.lo, brg, spec.rangeNm);
         ring.push([lo, la]);
       }
-      const color = COLORS[ac === "sf50" ? "sf50" : "pc12"];
-      const paxSuffix = pax === PAX_REF ? "" : ` · ${pax} Pax`;
       features.push({
         type: "Feature" as const,
-        properties: { color },
+        properties: { color: spec.color },
         geometry: { type: "Polygon" as const, coordinates: [ring] },
       });
-      const [lla, llo] = destPoint(a.la, a.lo, 25, range);
+      const [lla, llo] = destPoint(a.la, a.lo, 25, spec.rangeNm);
       features.push({
         type: "Feature" as const,
-        properties: {
-          color,
-          label: `${ac === "sf50" ? "SF50" : "PC-12"} ${fmtInt(range)} NM${paxSuffix}`,
-        },
+        properties: { color: spec.color, label: spec.label },
         geometry: { type: "Point" as const, coordinates: [llo, lla] },
       });
     }

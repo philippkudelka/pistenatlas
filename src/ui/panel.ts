@@ -1,14 +1,20 @@
 import {
-  classify,
+  classifyAirport,
   counterpartKey,
   SCENARIOS,
   type ScenarioId,
-} from "../logic/classify.ts";
-import { COUNTRY_NAMES } from "../logic/constants.ts";
-import { rangeAtPax } from "../logic/range.ts";
+} from "../model/verdict.ts";
+import { COUNTRY_NAMES } from "../app/countries.ts";
 import type { Airport, Verdict } from "../logic/types.ts";
 import { fmtInt } from "../app/format.ts";
-import { getState, setState, subscribe, type AppState } from "../app/state.ts";
+import { caseLabel, verdictContext } from "../app/compute.ts";
+import {
+  getState,
+  modelChanged,
+  setState,
+  subscribe,
+  type AppState,
+} from "../app/state.ts";
 import { COLORS, TIER_COLORS, TIER_LABELS } from "../app/colors.ts";
 
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -17,17 +23,26 @@ function el<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
 }
 
-/** Zwischengespeicherte Urteile für den aktuellen Optionsstand. */
+/** Urteile für den aktuellen Modell-Zustand (Cache wird bei Änderung verworfen). */
 let verdicts: Verdict[] = [];
-let verdictKey = "";
-function ensureVerdicts(airports: Airport[], s: AppState): Verdict[] {
-  const key = `${s.marginPct}|${s.useGrass}`;
-  if (key !== verdictKey) {
-    const opt = { marginPct: s.marginPct, useGrass: s.useGrass };
-    verdicts = airports.map((a) => classify(a, opt));
-    verdictKey = key;
+let verdictsDirty = true;
+export function invalidateVerdicts(): void {
+  verdictsDirty = true;
+}
+export function ensureVerdicts(airports: Airport[]): Verdict[] {
+  if (verdictsDirty) {
+    const ctx = verdictContext(getState());
+    verdicts = airports.map((a) => classifyAirport(a, ctx));
+    verdictsDirty = false;
   }
   return verdicts;
+}
+
+/** Sichtbarkeit nach Länder- und Militär-Filter. */
+export function isVisible(a: Airport, s: AppState): boolean {
+  if (s.country && a.c !== s.country) return false;
+  if (!s.includeMilitary && a.mi) return false;
+  return true;
 }
 
 /* animierter Zähler */
@@ -53,7 +68,7 @@ function tween(elem: HTMLElement, target: number): void {
 }
 
 function updateHero(airports: Airport[], s: AppState): void {
-  const v = ensureVerdicts(airports, s);
+  const v = ensureVerdicts(airports);
   const meta = SCENARIOS[s.scenario];
   const isSf = meta.ac === "sf50";
   const otherKey = counterpartKey(s.scenario);
@@ -63,7 +78,7 @@ function updateHero(airports: Airport[], s: AppState): void {
   let dOther = 0;
   for (let i = 0; i < airports.length; i++) {
     const a = airports[i]!;
-    if (s.country && a.c !== s.country) continue;
+    if (!isVisible(a, s)) continue;
     const verdict = v[i]!;
     if (verdict[meta.key]) {
       nSelf++;
@@ -91,6 +106,7 @@ function updateHero(airports: Airport[], s: AppState): void {
       ? `Zum Vergleich: die <b style="color:${COLORS.pc12}">PC-12</b> käme ${op} auf <b>${fmtInt(nOther)}</b> Plätze (+${fmtInt(diff)}${!s.country || s.country === "DE" ? `, in DE +${fmtInt(dOther - dSelf)}` : ""}) — blaue und türkise Punkte kann nur sie bedienen.`
       : `Die PC-12 käme ${op} auf ${fmtInt(nOther)} Plätze.`
     : `Zum Vergleich: der <b style="color:${COLORS.sf50}">SF50</b> käme ${op} nur auf <b>${fmtInt(nOther)}</b> Plätze (${fmtInt(diff)})${!s.country || s.country === "DE" ? `, in Deutschland <b>${fmtInt(dOther)}</b> statt ${fmtInt(dSelf)}` : ""}.`;
+  el("heroCase").textContent = `Fall: ${caseLabel(s)} · Höhenzuschlag je Platz eingerechnet`;
 }
 
 function updateLegend(s: AppState): void {
@@ -103,20 +119,20 @@ function updateLegend(s: AppState): void {
     .join("<br>");
   el("legend").innerHTML =
     `<div class="lt">Legende</div>${rows}` +
-    `<div class="hint">Volle Farbe = erfüllt <b style="color:var(--ink)">${meta.label}</b>, gedimmt = nicht · Punkt anklicken → Details, Reichweite &amp; Routen-Duell</div>`;
+    `<div class="hint">Volle Farbe = erfüllt <b style="color:var(--ink)">${meta.label}</b>, gedimmt = nicht · Farbe = höchste erfüllte Stufe im aktiven Beladungsfall</div>`;
 }
 
 function updateRank(airports: Airport[], s: AppState): void {
   const details = el<HTMLDetailsElement>("rankD");
   if (!details.open) return;
-  const v = ensureVerdicts(airports, s);
+  const v = ensureVerdicts(airports);
   const priv = SCENARIOS[s.scenario].op === "priv";
   const sfKey: keyof Verdict = priv ? "sf50Priv" : "sf50Cat";
   const pcKey: keyof Verdict = priv ? "pc12Priv" : "pc12Cat";
   const by = new Map<string, { sf: number; pc: number }>();
   for (let i = 0; i < airports.length; i++) {
     const a = airports[i]!;
-    if (s.country && a.c !== s.country) continue;
+    if (!isVisible(a, s)) continue;
     let e = by.get(a.c);
     if (!e) {
       e = { sf: 0, pc: 0 };
@@ -141,7 +157,7 @@ function updateRank(airports: Airport[], s: AppState): void {
 
 export function initPanel(airports: Airport[]): void {
   el("subline").textContent =
-    `Wer kann wo starten und landen? ${fmtInt(airports.length)} europäische Flugplätze gegen den Bahnbedarf beider Muster — privat und gewerblich.`;
+    `Wer kann wo starten und landen? ${fmtInt(airports.length)} europäische Flugplätze gegen den Bahnbedarf beider Muster — privat und gewerblich, je Beladungsfall.`;
 
   // Szenario-Buttons
   const views = el("views");
@@ -163,24 +179,9 @@ export function initPanel(airports: Airport[]): void {
   el<HTMLInputElement>("grass").addEventListener("change", (e) =>
     setState({ useGrass: (e.target as HTMLInputElement).checked }),
   );
-
-  // Passagier-Regler: Reichweite nach MTOW-Modell (siehe logic/range.ts)
-  const paxInput = el<HTMLInputElement>("pax");
-  const updatePaxInfo = (): void => {
-    const pax = Number(paxInput.value);
-    el("paxV").textContent = String(pax);
-    const sf = rangeAtPax("sf50", pax);
-    const pc = rangeAtPax("pc12", pax);
-    el("paxInfo").innerHTML =
-      `Reichweite: <span style="color:${COLORS.sf50}">SF50</span> ${sf === null ? "— (max. 5 Pax)" : `${fmtInt(sf)} NM`}` +
-      ` · <span style="color:${COLORS.pc12}">PC-12</span> ${pc === null ? "—" : `${fmtInt(pc)} NM`}` +
-      `<br>Ab dem 5. Passagier (à 100 kg) geht bei MTOW Zuladung gegen Sprit; der Bahnbedarf bleibt konservativ bei max. Masse.`;
-  };
-  paxInput.addEventListener("input", () => {
-    updatePaxInfo();
-    setState({ paxCount: Number(paxInput.value) });
-  });
-  updatePaxInfo();
+  el<HTMLInputElement>("military").addEventListener("change", (e) =>
+    setState({ includeMilitary: (e.target as HTMLInputElement).checked }),
+  );
   const countrySel = el<HTMLSelectElement>("country");
   [...new Set(airports.map((a) => a.c))]
     .sort((a, b) =>
@@ -208,11 +209,13 @@ export function initPanel(airports: Airport[]): void {
   });
 
   subscribe((s, changed) => {
+    if (modelChanged(changed)) invalidateVerdicts();
     if (
+      modelChanged(changed) ||
       changed.has("scenario") ||
-      changed.has("marginPct") ||
-      changed.has("useGrass") ||
-      changed.has("country")
+      changed.has("country") ||
+      changed.has("includeMilitary") ||
+      changed.has("regime")
     ) {
       updateHero(airports, s);
       updateLegend(s);

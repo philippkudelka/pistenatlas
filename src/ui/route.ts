@@ -1,15 +1,17 @@
-import { classify } from "../logic/classify.ts";
-import {
-  BLOCK_TIME_EXTRA_H,
-  CO2_PER_LITRE,
-  PERF,
-} from "../logic/constants.ts";
+import { classifyAirport } from "../model/verdict.ts";
+import { trip } from "../model/mission.ts";
 import { gcDistanceNm } from "../logic/geo.ts";
-import { rangeAtPax } from "../logic/range.ts";
 import type { AircraftId, Airport } from "../logic/types.ts";
 import { esc, fmtHhMm, fmtInt } from "../app/format.ts";
+import {
+  activeRangeNm,
+  caseLabel,
+  loads,
+  verdictContext,
+} from "../app/compute.ts";
 import { getState, setState } from "../app/state.ts";
 import { COLORS } from "../app/colors.ts";
+import { val } from "../model/constants.ts";
 
 const routeEl = () => document.getElementById("route")!;
 
@@ -22,43 +24,49 @@ export function clearRoute(): void {
   setState({ routeA: null, routeB: null, routePicking: false });
 }
 
-/** Routen-Duell-Karte für die Strecke A → B anzeigen. */
+/** Routen-Duell-Karte für die Strecke A → B anzeigen (aktiver Beladungsfall). */
 export function showRouteCard(a: Airport, b: Airport): void {
   const s = getState();
-  const opt = { marginPct: s.marginPct, useGrass: s.useGrass };
-  const vA = classify(a, opt);
-  const vB = classify(b, opt);
+  const ctx = verdictContext(s);
+  const vA = classifyAirport(a, ctx);
+  const vB = classifyAirport(b, ctx);
+  const l = loads(s);
   const dist = gcDistanceNm(a, b);
 
-  const pax = s.paxCount;
   const col = (ac: AircraftId): string => {
-    const perf = PERF[ac];
-    const blockH = dist / perf.tas + BLOCK_TIME_EXTRA_H;
-    const fuel = Math.round(blockH * perf.lph);
-    const co2 = Math.round(fuel * CO2_PER_LITRE);
+    const color = ac === "sf50" ? COLORS.sf50 : COLORS.pc12;
+    const name = ac === "sf50" ? "SF50 Vision Jet" : "Pilatus PC-12";
+    const load = l[ac];
+    if (!load.ok)
+      return `<div class="rcol" style="--c:${color}"><div class="hd">${name}</div>
+        <div class="big">—</div><div class="sm">Beladung ungültig: ${esc(load.errors[0] ?? "")}</div></div>`;
+    const t = trip(ac, dist, s.regime, s.overrides);
+    const range = activeRangeNm(s, ac) ?? 0;
+    const overRange = dist > range;
+    const fuelShort = t.requiredGal > load.fuelGal;
     const okPriv =
       ac === "sf50" ? vA.sf50Priv && vB.sf50Priv : vA.pc12Priv && vB.pc12Priv;
     const okCat =
       ac === "sf50" ? vA.sf50Cat && vB.sf50Cat : vA.pc12Cat && vB.pc12Cat;
-    const range = rangeAtPax(ac, pax);
-    const tooManyPax = range === null;
-    const overRange = !tooManyPax && dist > range;
-    return `<div class="rcol" style="--c:${ac === "sf50" ? COLORS.sf50 : COLORS.pc12}"><div class="hd">${perf.name}</div>
-      <div class="big">${tooManyPax || overRange ? "—" : fmtHhMm(blockH)}</div>
+    const litres = Math.round(t.tripFuelKg / 0.8);
+    return `<div class="rcol" style="--c:${color}"><div class="hd">${name}</div>
+      <div class="big">${overRange ? "—" : fmtHhMm(t.blockH)}</div>
       <div class="sm">${
-        tooManyPax
-          ? `maximal ${perf.seatsMax} Passagiere`
-          : overRange
-            ? `außerhalb der Reichweite (${fmtInt(range)} NM bei ${pax} Pax)`
-            : `~${fmtInt(fuel)} l · ~${fmtInt(co2)} kg CO₂ fossil`
+        overRange
+          ? `außerhalb der Reichweite dieses Falls (${fmtInt(range)} NM)`
+          : `~${fmtInt(litres)} l · ~${fmtInt(Math.round(t.co2Kg))} kg CO₂ fossil` +
+            (fuelShort ? ` · <span style="color:var(--bad)">Reserve knapp!</span>` : "")
       }</div>
       <div class="vp"><span class="pill ${okPriv ? "ok" : "no"}">privat ${okPriv ? "✓" : "✗"}</span>
       <span class="pill ${okCat ? "ok" : "no"}">gewerblich ${okCat ? "✓" : "✗"}</span></div></div>`;
   };
 
+  const tasS = val("sf50.tasLrc", s.overrides);
+  const tasF = val("sf50.tasFast", s.overrides);
+  const tasP = val(s.regime === "lrc" ? "pc12.tasLrc" : "pc12.tasFast", s.overrides);
   document.getElementById("routeC")!.innerHTML =
     `<h3>${esc(a.i)} ➔ ${esc(b.i)}<span class="d">${fmtInt(Math.round(dist))} NM Großkreis · ${esc(a.m || a.n)} → ${esc(b.m || b.n)}</span></h3>
   <div id="rgrid">${col("sf50")}${col("pc12")}</div>
-  <div id="rnote">Gerechnet mit <b>${pax} Passagier${pax === 1 ? "" : "en"}</b> (Reichweite nach MTOW-Modell). Blockzeit = Distanz / Reise-TAS (SF50 305 kt, PC-12 285 kt) + 12 min; Verbrauch SF50 227 l/h (AFM-Ableitung), PC-12 ~245 l/h (Schätzung); CO₂ 3,16 kg je kg Jet A-1 — mit SAF entsprechend weniger. Pillen: können Start- <i>und</i> Zielplatz bedient werden (aktuelle Marge)?</div>`;
+  <div id="rnote">Fall: <b>${caseLabel(s)}</b> · Kraftstoff/Zeit aus dem Missionsmodell (Rollen, Steigflug, Reiseflug ${s.regime === "lrc" ? `${fmtInt(tasS)}/${fmtInt(tasP)} kt` : `${fmtInt(tasF)}/${fmtInt(tasP)} kt`}, ohne Reserve ausgewiesen) · CO₂ ${val("shared.co2PerKgFuel", s.overrides)} kg je kg Jet A-1 — mit SAF entsprechend weniger · Pillen: Start- <i>und</i> Zielplatz bedienbar (massenabhängiger Bahnbedarf)? Alle Parameter unter „Annahmen“.</div>`;
   routeEl().classList.add("open");
 }

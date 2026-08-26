@@ -13,12 +13,16 @@ import {
   updateRoute,
   updateSelectionMarker,
 } from "./layers.ts";
-import { getState, setState, subscribe } from "../app/state.ts";
+import { getState, modelChanged, setState, subscribe } from "../app/state.ts";
 import { closeCard, initCard, refreshCard, showCard } from "../ui/card.ts";
 import { showToast, hideToast } from "../ui/toast.ts";
 import { clearRoute, initRouteCard, showRouteCard } from "../ui/route.ts";
 import { initSearch } from "../ui/search.ts";
-import { esc } from "../app/format.ts";
+import { ensureVerdicts, isVisible } from "../ui/panel.ts";
+import { SCENARIOS, tierOf } from "../model/verdict.ts";
+import { activeRangeNm, caseLabel } from "../app/compute.ts";
+import { esc, fmtInt } from "../app/format.ts";
+import { COLORS } from "../app/colors.ts";
 
 export const EUROPE_BOUNDS: [[number, number], [number, number]] = [
   [-11, 34],
@@ -28,6 +32,22 @@ export const GERMANY_BOUNDS: [[number, number], [number, number]] = [
   [5.5, 47],
   [15.5, 55.2],
 ];
+
+/** Ring-Spezifikationen für den aktiven Beladungsfall (mit Fall-Beschriftung). */
+function ringSpecs() {
+  const s = getState();
+  const specs = [];
+  for (const ac of ["pc12", "sf50"] as const) {
+    const nm = activeRangeNm(s, ac);
+    if (nm === null || nm <= 0) continue;
+    specs.push({
+      rangeNm: nm,
+      color: ac === "sf50" ? COLORS.sf50 : COLORS.pc12,
+      label: `${ac === "sf50" ? "SF50" : "PC-12"} ${fmtInt(nm)} NM · ${caseLabel(s, ac)}`,
+    });
+  }
+  return specs;
+}
 
 export async function initMap(airports: Airport[]): Promise<void> {
   const basemap = await loadBasemapStyle(import.meta.env.BASE_URL);
@@ -80,22 +100,25 @@ export async function initMap(airports: Airport[]): Promise<void> {
 
   function refreshDots(): void {
     const s = getState();
-    updateAirports(
-      map,
-      airports,
-      s.scenario,
-      { marginPct: s.marginPct, useGrass: s.useGrass },
-      s.country,
-    );
+    const verdicts = ensureVerdicts(airports);
+    const key = SCENARIOS[s.scenario].key;
+    updateAirports(map, airports, (a, idx) => {
+      if (!isVisible(a, s)) return null;
+      const v = verdicts[idx]!;
+      return { tier: tierOf(v), on: v[key] };
+    });
   }
-  subscribe((_s, changed) => {
+
+  subscribe((s, changed) => {
     if (
+      modelChanged(changed) ||
       changed.has("scenario") ||
-      changed.has("marginPct") ||
-      changed.has("useGrass") ||
-      changed.has("country")
+      changed.has("country") ||
+      changed.has("includeMilitary")
     )
       refreshDots();
+    if ((modelChanged(changed) || changed.has("regime")) && s.ringsFor)
+      updateRings(map, s.ringsFor, ringSpecs());
   });
 
   // Zoom-Cluster
@@ -203,13 +226,12 @@ function initInteractions(map: maplibregl.Map, airports: Airport[]): void {
 
   subscribe((s, changed) => {
     if (changed.has("selected")) updateSelectionMarker(map, s.selected);
-    if (changed.has("marginPct") || changed.has("useGrass")) refreshCard();
-    if (changed.has("ringsFor") || (changed.has("paxCount") && s.ringsFor))
-      updateRings(map, s.ringsFor, s.paxCount);
+    if (modelChanged(changed)) refreshCard();
+    if (changed.has("ringsFor")) updateRings(map, s.ringsFor, ringSpecs());
     if (changed.has("routeA") || changed.has("routeB"))
       updateRoute(map, s.routeA, s.routeB);
-    // Passagierzahl ändert Reichweite → offenes Routen-Duell neu rechnen
-    if (changed.has("paxCount") && s.routeA && s.routeB)
+    // Modell-/Regime-Änderung rechnet ein offenes Routen-Duell neu
+    if ((modelChanged(changed) || changed.has("regime")) && s.routeA && s.routeB)
       showRouteCard(s.routeA, s.routeB);
   });
 
