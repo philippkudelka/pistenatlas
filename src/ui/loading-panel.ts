@@ -18,11 +18,21 @@ function updateView(): void {
   const s = getState();
   const l = loads(s);
 
-  // Chips in der Summary-Zeile
+  // Chips in der Summary-Zeile — der vollständige aktive Fall auf einen Blick
   const tankChip =
     s.tankMode === "max" ? "max. Tank" : `Tank ${Math.round(s.tankFraction * 100)} %`;
-  el("loadChips").textContent =
-    `${s.persons} Pers. · ${tankChip} · ${s.regime === "lrc" ? "Sparflug" : "Schnellflug"} · ${s.wet ? "nass" : "trocken"}`;
+  const chips: Array<[string, boolean]> = [
+    [`${s.persons} Pers.`, false],
+    [tankChip, false],
+    [s.regime === "lrc" ? "Sparflug" : "Schnellflug", false],
+    [s.wet ? "nass" : "trocken", s.wet],
+  ];
+  if (s.marginPct) chips.push([`Marge +${s.marginPct} %`, false]);
+  if (s.altMode === "conservative") chips.push(["Höhe +9 %", false]);
+  if (!l.sf50.ok || !l.pc12.ok) chips.push(["Beladung prüfen!", true]);
+  el("loadChips").innerHTML = chips
+    .map(([t, warn]) => `<span${warn ? ' class="warn"' : ""}>${t}</span>`)
+    .join("");
 
   el("personsV").textContent = String(s.persons);
   el<HTMLInputElement>("tank").disabled = s.tankMode === "max";

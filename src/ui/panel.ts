@@ -7,7 +7,7 @@ import {
 import { COUNTRY_NAMES } from "../app/countries.ts";
 import type { Airport, Verdict } from "../logic/types.ts";
 import { fmtInt } from "../app/format.ts";
-import { caseLabel, verdictContext } from "../app/compute.ts";
+import { verdictContext } from "../app/compute.ts";
 import {
   getState,
   modelChanged,
@@ -106,7 +106,6 @@ function updateHero(airports: Airport[], s: AppState): void {
       ? `Zum Vergleich: die <b style="color:${COLORS.pc12}">PC-12</b> käme ${op} auf <b>${fmtInt(nOther)}</b> Plätze (+${fmtInt(diff)}${!s.country || s.country === "DE" ? `, in DE +${fmtInt(dOther - dSelf)}` : ""}) — blaue und türkise Punkte kann nur sie bedienen.`
       : `Die PC-12 käme ${op} auf ${fmtInt(nOther)} Plätze.`
     : `Zum Vergleich: der <b style="color:${COLORS.sf50}">SF50</b> käme ${op} nur auf <b>${fmtInt(nOther)}</b> Plätze (${fmtInt(diff)})${!s.country || s.country === "DE" ? `, in Deutschland <b>${fmtInt(dOther)}</b> statt ${fmtInt(dSelf)}` : ""}.`;
-  el("heroCase").textContent = `Fall: ${caseLabel(s)} · Höhenzuschlag je Platz eingerechnet`;
 }
 
 function updateLegend(s: AppState): void {
@@ -119,7 +118,7 @@ function updateLegend(s: AppState): void {
     .join("<br>");
   el("legend").innerHTML =
     `<div class="lt">Legende</div>${rows}` +
-    `<div class="hint">Volle Farbe = erfüllt <b style="color:var(--ink)">${meta.label}</b>, gedimmt = nicht · Farbe = höchste erfüllte Stufe im aktiven Beladungsfall</div>`;
+    `<div class="hint">Gedimmt = erfüllt <b style="color:var(--ink)">${meta.label}</b> nicht (aktiver Beladungsfall)</div>`;
 }
 
 function updateRank(airports: Airport[], s: AppState): void {
@@ -157,7 +156,7 @@ function updateRank(airports: Airport[], s: AppState): void {
 
 export function initPanel(airports: Airport[]): void {
   el("subline").textContent =
-    `Wer kann wo starten und landen? ${fmtInt(airports.length)} europäische Flugplätze gegen den Bahnbedarf beider Muster — privat und gewerblich, je Beladungsfall.`;
+    `${fmtInt(airports.length)} europäische Flugplätze gegen den Bahnbedarf beider Muster — je Szenario und Beladungsfall.`;
 
   // Szenario-Buttons
   const views = el("views");

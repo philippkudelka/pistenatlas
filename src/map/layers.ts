@@ -162,7 +162,7 @@ function tierColorExpr(): maplibregl.ExpressionSpecification {
 function dotOpacityExpr(routeDim: boolean): maplibregl.ExpressionSpecification {
   const onFull = routeDim ? 0.28 : 1;
   const off = routeDim ? 0.1 : 0.3;
-  const zero = routeDim ? 0.08 : 0.25;
+  const zero = routeDim ? 0.06 : 0.16;
   return [
     "case",
     ["==", ["get", "tier"], 0],
@@ -181,7 +181,7 @@ function radiusExpr(
     [
       "case",
       ["==", ["get", "tier"], 0],
-      base * 0.45,
+      base * 0.38,
       ["==", ["get", "on"], 1],
       base,
       base * 0.7,

@@ -289,6 +289,33 @@ details {
   border-top: 1px solid var(--edge);
   padding-top: 9px;
 }
+
+/* Beladungs-Chips in der Summary-Zeile */
+#loadD summary {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.chips {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.chips span {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--edge);
+  border-radius: 99px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.chips span.warn {
+  border-color: rgba(255, 107, 94, 0.5);
+  color: var(--bad);
+}
 summary {
   font-size: 10px;
   font-weight: 700;

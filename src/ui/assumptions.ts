@@ -14,32 +14,53 @@ import { esc } from "../app/format.ts";
 
 const numFmt = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 4 });
 
+/** Gruppen-Überschriften für die Lesbarkeit; Label-Präfixe werden gekürzt. */
+const GROUPS: Array<[string, (key: string) => boolean, string]> = [
+  ["Cirrus SF50 Vision Jet", (k) => k.startsWith("sf50."), "SF50 · "],
+  ["Pilatus PC-12 NGX", (k) => k.startsWith("pc12."), "PC-12 · "],
+  ["Beladung, Bahnbedarf & Routen", (k) => k.startsWith("shared."), ""],
+];
+
 function render(): void {
   const list = document.getElementById("assumeList")!;
   const overrides = getState().overrides;
   const rows: string[] = [];
-  for (const key of Object.keys(CONSTANTS) as ConstantKey[]) {
-    const c: ModelConstant = CONSTANTS[key];
-    const effective = val(key, overrides);
-    const changed = overrides[key] !== undefined;
-    const value = c.editable
-      ? `<input type="number" step="any" data-key="${key}" value="${effective}" aria-label="${esc(c.label)}"
-           style="width:76px;padding:2px 4px;font-size:11px;text-align:right;color:var(--pc12)">` +
-        (changed
-          ? `<button data-reset="${key}" title="Zurücksetzen auf ${numFmt.format(c.value)}" aria-label="${esc(c.label)} zurücksetzen" style="border:0;background:none;color:var(--gold,#F2C14E);cursor:pointer">↺</button>`
-          : "")
-      : `<span class="mono" style="font-size:11px">${numFmt.format(effective)}</span>`;
+  for (const [title, match, strip] of GROUPS) {
     rows.push(
-      `<div style="display:flex;align-items:baseline;gap:6px;padding:3px 0;border-bottom:1px solid var(--edge);font-size:11px">
-        <span style="flex:1;color:${changed ? "var(--ink)" : "var(--mut)"}">${esc(c.label)}${c.note ? ` <span style="color:var(--dim)" title="${esc(c.note)}">ⓘ</span>` : ""}</span>
-        ${value}
-        <span class="mono" style="color:var(--dim);font-size:10px;width:64px">${esc(c.unit)}</span>
-        <span style="font-size:9px;font-weight:700;letter-spacing:.05em;color:${c.source === "Schätzung" ? "var(--bad)" : "var(--dim)"};width:74px;text-align:right">${c.source}</span>
-      </div>`,
+      `<div class="lbl" style="margin:12px 0 2px">${title}</div>`,
     );
+    for (const key of (Object.keys(CONSTANTS) as ConstantKey[]).filter(match))
+      rows.push(row(key, strip, overrides));
   }
   list.innerHTML = rows.join("");
+  wire(list);
+}
 
+function row(
+  key: ConstantKey,
+  strip: string,
+  overrides: ReturnType<typeof getState>["overrides"],
+): string {
+  const c: ModelConstant = CONSTANTS[key];
+  const label = c.label.startsWith(strip) ? c.label.slice(strip.length) : c.label;
+  const effective = val(key, overrides);
+  const changed = overrides[key] !== undefined;
+  const value = c.editable
+    ? `<input type="number" step="any" data-key="${key}" value="${effective}" aria-label="${esc(c.label)}"
+         style="width:76px;padding:2px 4px;font-size:11px;text-align:right;color:var(--pc12)">` +
+      (changed
+        ? `<button data-reset="${key}" title="Zurücksetzen auf ${numFmt.format(c.value)}" aria-label="${esc(c.label)} zurücksetzen" style="border:0;background:none;color:#F2C14E;cursor:pointer">↺</button>`
+        : "")
+    : `<span class="mono" style="font-size:11px">${numFmt.format(effective)}</span>`;
+  return `<div style="display:flex;align-items:baseline;gap:6px;padding:3px 0;border-bottom:1px solid var(--edge);font-size:11px">
+      <span style="flex:1;color:${changed ? "var(--ink)" : "var(--mut)"}">${esc(label)}${c.note ? ` <span style="color:var(--dim)" title="${esc(c.note)}">ⓘ</span>` : ""}</span>
+      ${value}
+      <span class="mono" style="color:var(--dim);font-size:10px;width:56px">${esc(c.unit)}</span>
+      <span style="font-size:9px;font-weight:700;letter-spacing:.05em;color:${c.source === "Schätzung" ? "var(--bad)" : "var(--dim)"};width:70px;text-align:right">${c.source}</span>
+    </div>`;
+}
+
+function wire(list: HTMLElement): void {
   list.querySelectorAll<HTMLInputElement>("input[data-key]").forEach((inp) =>
     inp.addEventListener("change", () => {
       const key = inp.dataset["key"] as ConstantKey;
