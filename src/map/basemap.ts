@@ -7,9 +7,11 @@ import type { StyleSpecification, LayerSpecification } from "maplibre-gl";
  */
 const OPENFREEMAP_STYLE = "https://tiles.openfreemap.org/styles/dark";
 
-const BG = "#0A0E15";
-const WATER = "#070B12";
-const BOUNDARY = "#2E3D4E";
+// Land deutlich heller als Wasser, damit Küsten und Länder erkennbar sind
+// (Look des Prototyps: Land #151D28 auf Wasser-Blauschwarz).
+const LAND = "#1A2330";
+const WATER = "#060A10";
+const BOUNDARY = "#4A5E76";
 
 /** Achromatische Grautöne (r≈g≈b) nach Blaugrau gleicher Helligkeit verschieben. */
 function tintColor(value: string): string {
@@ -58,26 +60,43 @@ function tintStyle(style: StyleSpecification): StyleSpecification {
         if (k.endsWith("-color")) paint[k] = tintPaintValue(paint[k]);
       }
     if (layer.id === "background" && layer.type === "background")
-      layer.paint = { ...layer.paint, "background-color": BG };
+      layer.paint = { ...layer.paint, "background-color": LAND };
     if (layer.id === "water" && layer.type === "fill")
       layer.paint = { ...layer.paint, "fill-color": WATER, "fill-antialias": false };
     if (layer.id === "waterway" && layer.type === "line")
       layer.paint = { ...layer.paint, "line-color": WATER };
     if (layer.id.startsWith("boundary") && layer.type === "line")
       layer.paint = { ...layer.paint, "line-color": BOUNDARY };
+    // Beschriftungen aufhellen (mindestens ~55 % Helligkeit), Halo dunkel
+    if (layer.type === "symbol" && paint) {
+      if (typeof paint["text-color"] === "string")
+        paint["text-color"] = raiseLightness(paint["text-color"] as string, 55);
+      if (typeof paint["text-halo-color"] === "string")
+        paint["text-halo-color"] = "rgba(8, 12, 18, 0.85)";
+    }
   }
   return style;
+}
+
+/** Helligkeit eines (getinteten) hsla-Werts auf mindestens `minL` % anheben. */
+function raiseLightness(color: string, minL: number): string {
+  const m = /^hsla\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*,\s*([\d.]+)\)$/.exec(
+    color.trim(),
+  );
+  if (!m) return color;
+  const l = Math.max(+m[3]!, minL);
+  return `hsla(${m[1]}, ${m[2]}%, ${l}%, ${m[4]})`;
 }
 
 /** Minimal-Stil aus der eingecheckten Grenzen-GeoJSON (kein Netz nötig). */
 function fallbackStyle(baseUrl: string): StyleSpecification {
   const layers: LayerSpecification[] = [
-    { id: "background", type: "background", paint: { "background-color": BG } },
+    { id: "background", type: "background", paint: { "background-color": WATER } },
     {
       id: "land",
       type: "fill",
       source: "borders",
-      paint: { "fill-color": "#151D28" },
+      paint: { "fill-color": LAND },
     },
     {
       id: "coast",
