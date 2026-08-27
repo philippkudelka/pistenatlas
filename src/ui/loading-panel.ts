@@ -21,8 +21,8 @@ function updateView(): void {
   // Chips in der Summary-Zeile — der vollständige aktive Fall auf einen Blick
   const tankChip =
     s.tankMode === "max" ? "max. Tank" : `Tank ${Math.round(s.tankFraction * 100)} %`;
+  // Personenzahl steht als eigener Regler direkt darüber — hier nicht doppeln
   const chips: Array<[string, boolean]> = [
-    [`${s.persons} Pers.`, false],
     [tankChip, false],
     [s.regime === "lrc" ? "Sparflug" : "Schnellflug", false],
     [s.wet ? "nass" : "trocken", s.wet],
